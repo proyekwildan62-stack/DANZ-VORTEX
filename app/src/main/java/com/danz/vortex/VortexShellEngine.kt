@@ -3,7 +3,6 @@ package com.danz.vortex
 import android.content.Context
 import android.content.pm.PackageManager
 import rikka.shizuku.Shizuku
-import rikka.shizuku.ShizukuRemoteProcess
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.lang.reflect.Method
@@ -39,6 +38,10 @@ object VortexShellEngine {
         }
     }
 
+    /**
+     * Mengeksekusi perintah langsung menggunakan UID 2000 (ADB Shell via Shizuku)
+     * Menggunakan java.lang.Process agar 100% lolos compile Kotlin tanpa error.
+     */
     fun execShell(command: String): String {
         return try {
             val process: Process = if (hasShizukuPermission()) {
@@ -49,7 +52,7 @@ object VortexShellEngine {
                     String::class.java
                 )
                 newProcessMethod.isAccessible = true
-                newProcessMethod.invoke(null, arrayOf("sh", "-c", command), null, null) as ShizukuRemoteProcess
+                newProcessMethod.invoke(null, arrayOf("sh", "-c", command), null, null) as Process
             } else {
                 Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
             }
@@ -63,7 +66,7 @@ object VortexShellEngine {
                 stdErr.isNotEmpty() -> "WARN: $stdErr"
                 else -> "OK (UID 2000 Executed)"
             }
-            lastExecutionLog = "CMD: ${command.take(45)}... -> $result"
+            lastExecutionLog = "CMD: ${command.take(40)}... -> $result"
             result
         } catch (e: Exception) {
             val err = "ERR: ${e.message}"
@@ -119,22 +122,38 @@ object VortexShellEngine {
         }
     }
 
-    // 3. GAME SPACE GRAFIK RINGAN ROG/PC MODE (TANPA MENGUBAH UKURAN LAYAR HP)
-    fun setRogPcGameSpace(context: Context, enable: Boolean): String {
+    // 3. GAME SPACE GRAFIK RINGAN ROG/PC + TEKSTUR MINECRAFT (TANPA UBAH UKURAN LAYAR HP)
+    // presetMode: 0 = Off/Standard, 1 = ROG/PC Smooth (0.75), 2 = Minecraft V1 Semi-Kotak (0.45), 3 = Minecraft V2 Extreme Blocky (0.30)
+    fun setRogMinecraftGameSpace(presetMode: Int): String {
         val packages = listOf("com.dts.freefireth", "com.dts.freefiremax")
-        return if (enable) {
+        return if (presetMode > 0) {
+            val scaleFactor = when (presetMode) {
+                1 -> "0.75"
+                2 -> "0.45"
+                else -> "0.30"
+            }
+            val modeName = when (presetMode) {
+                1 -> "ROG/PC Smooth (0.75)"
+                2 -> "MINECRAFT V1 Blocky (0.45)"
+                else -> "MINECRAFT V2 Super Kotak (0.30)"
+            }
             val cmd = buildString {
                 for (pkg in packages) {
                     append("cmd game mode performance $pkg 2>/dev/null; ")
-                    append("cmd game set --mode 2 --downscale 0.85 --fps 120 $pkg 2>/dev/null; ")
-                    append("device_config put game_overlay $pkg mode=2,downscaleFactor=0.85,fps=120:mode=3,downscaleFactor=0.7,fps=90 2>/dev/null; ")
+                    append("cmd game set --mode 2 --downscale $scaleFactor --fps 120 $pkg 2>/dev/null; ")
+                    append("device_config put game_overlay $pkg mode=2,downscaleFactor=$scaleFactor,fps=120:mode=3,downscaleFactor=$scaleFactor,fps=90 2>/dev/null; ")
+                    append("am force-stop $pkg 2>/dev/null; ")
                 }
+                // Paksa SkiaGL Low-LOD & matikan MSAA agar piksel tampak kotak-kotak tajam ala Minecraft tanpa blur
+                append("setprop debug.hwui.renderer skiagl 2>/dev/null; ")
+                append("setprop debug.egl.force_msaa false 2>/dev/null; ")
+                append("setprop debug.hwui.force_dark false 2>/dev/null; ")
+                append("setprop debug.sf.latch_unsignaled 1 2>/dev/null; ")
                 append("settings put global window_animation_scale 0.0; ")
                 append("settings put global transition_animation_scale 0.0; ")
                 append("settings put global animator_duration_scale 0.0; ")
-                append("settings put global cached_apps_freezer enabled; ")
                 append("am kill-all; ")
-                append("echo \"ROG/PC GameMode=PERFORMANCE | Anim=0.0 | RAM Purged\"")
+                append("echo \"Active: $modeName | 120FPS\"")
             }
             execShell(cmd)
         } else {
@@ -147,7 +166,7 @@ object VortexShellEngine {
                 append("settings put global window_animation_scale 1.0; ")
                 append("settings put global transition_animation_scale 1.0; ")
                 append("settings put global animator_duration_scale 1.0; ")
-                append("echo \"GameMode Restored to Standard\"")
+                append("echo \"Tekstur Game Space Dikembalikan ke Normal\"")
             }
             execShell(cmd)
         }
