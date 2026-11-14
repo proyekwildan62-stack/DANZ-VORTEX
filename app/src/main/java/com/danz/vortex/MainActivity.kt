@@ -608,9 +608,9 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
                         )
                         Text(
                             text = when (currentTab) {
-                                0 -> "Nebula Touch & ANGLE Minecraft Engine"
-                                1 -> "Extreme Slickness 500Hz & Visual"
-                                2 -> "High Features (Max Lock Pala)"
+                                0 -> "Hybrid ANGLE & Grafik MC Engine"
+                                1 -> "Zero-Overshoot Slickness & Visual"
+                                2 -> "High Features (Nempel Kepala)"
                                 else -> "1 Key 1 Device & Reseller Panel"
                             },
                             color = CrimsonRed,
@@ -707,6 +707,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     var selectedMinecraftPreset by remember { mutableStateOf(prefs.getInt("mcPreset", 3)) }
 
     val shizukuGranted = VortexShellEngine.hasShizukuPermission()
+    val detectedFF = remember { VortexShellEngine.getInstalledFFPackage(context) }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -739,9 +740,9 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                EnvRow("Application", "DANZVORTEX V5 VIP")
+                EnvRow("Target Game Detected", detectedFF)
                 Spacer(modifier = Modifier.height(8.dp))
-                EnvRow("Engine", "Nebula Touch 500Hz + ANGLE MC")
+                EnvRow("Head-Magnet Engine", "LSQ1 Linear + Big Core Lock")
                 Spacer(modifier = Modifier.height(8.dp))
                 EnvRow("Shizuku UID 2000", if (shizukuGranted) "GRANTED (100% WORK)" else "NOT BOUND (TAP >_)")
             }
@@ -749,18 +750,18 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
         item {
             ToggleFeatureCard(
-                title = "Nebula Extreme Slickness 500Hz (Super Licin)",
-                subtitle = "Injeksi Velocity Impulse + Zero Slop (0px) + 500 Events/Sec langsung ke sistem Free Fire.",
+                title = "Precision Head-Brake Slickness (Anti-Lewat Kepala)",
+                subtitle = "Melicinkan tarikan awal namun langsung mengerem tepat di hitbox kepala (Zero Overshoot).",
                 checked = tacticalRec,
                 onCheckedChange = {
                     tacticalRec = it
                     prefs.edit().putBoolean("tacticalRec", it).apply()
-                    onRun { VortexShellEngine.setDragHsSensitivity(context, it, 7) }
+                    onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "HeadBrakeSlick") }
                 }
             )
         }
 
-        // GAME SPACE GRAFIK MINECRAFT PERSIS FOTO (NEBULA TOUCH + PREFERENSI ANGLE)
+        // GAME SPACE GRAFIK MINECRAFT V6 (SINGLE-PACKAGE ANGLE + 3D WORLD PIXEL BLOCK)
         item {
             Column(
                 modifier = Modifier
@@ -776,10 +777,10 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text("Danz Game Space (Grafik MC Nebula / ANGLE)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Text("Danz Game Space (Grafik MC All-Device V6)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Mengubah tekstur tembok, lantai, & balok di Free Fire menjadi polos rata ala Minecraft persis foto (TANPA DOWNSCALE / HUD 100% Tajam).",
+                            "Mengubah tekstur 3D Free Fire menjadi kotak-kotak/polos ala Minecraft (Ukuran layar HP & tombol HUD tetap 100% normal).",
                             color = TextGray,
                             fontSize = 11.sp,
                             lineHeight = 15.sp
@@ -791,7 +792,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             rogSpace = it
                             prefs.edit().putBoolean("rogSpace", it).apply()
                             onRun {
-                                VortexShellEngine.setRogMinecraftTextureOnly(if (it) selectedMinecraftPreset else 0)
+                                VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) selectedMinecraftPreset else 0)
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -804,13 +805,13 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Pilih Preset Grafik MC (Zero Downscale):", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Pilih Mesin Grafik MC (Support Semua HP):", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val presets = listOf(
-                    Triple(1, "ROG / PC Competitive Flat", "Native Driver + Mipmap Limit 2 + 120FPS"),
-                    Triple(2, "Nebula Grafik MC V1 (ANGLE Driver)", "Preferensi ANGLE + Mipmap Limit 3 + Flat Wall"),
-                    Triple(3, "Nebula Grafik MC V2 (Persis Foto)", "ANGLE + Zero Texture Pool (0MB) + ShaderLOD 100")
+                    Triple(1, "Mode 1: Preferensi ANGLE + Medium MC", "Single-Package ANGLE Driver + 0.50 3D World Block"),
+                    Triple(2, "Mode 2: Tanpa Preferensi ANGLE (All Device)", "3D World Pixel Block 0.35 + Shader Strip (HUD Tetap Tajam)"),
+                    Triple(3, "Mode 3: HYBRID EXTREME MC (Persis Foto)", "ANGLE Global ON + 0.25 3D Pixel Block + Zero Texture Cache")
                 )
 
                 presets.forEach { (modeId, title, desc) ->
@@ -826,7 +827,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                                 selectedMinecraftPreset = modeId
                                 prefs.edit().putInt("mcPreset", modeId).apply()
                                 if (rogSpace) {
-                                    onRun { VortexShellEngine.setRogMinecraftTextureOnly(modeId) }
+                                    onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
                                 }
                             }
                             .padding(12.dp),
@@ -843,7 +844,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                                 selectedMinecraftPreset = modeId
                                 prefs.edit().putInt("mcPreset", modeId).apply()
                                 if (rogSpace) {
-                                    onRun { VortexShellEngine.setRogMinecraftTextureOnly(modeId) }
+                                    onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
                                 }
                             },
                             colors = RadioButtonDefaults.colors(selectedColor = CrimsonRed, unselectedColor = TextGray)
@@ -872,7 +873,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text("Free Fire System Injector & Launcher", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Terapkan Grafik MC + Lock Pala 99% & Buka Game", color = TextGray, fontSize = 12.sp)
+                        Text("Wajib buka FF dari tombol ini agar Grafik MC & Lock Kepala aktif", color = TextGray, fontSize = 12.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -880,7 +881,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     Button(
                         onClick = {
                             onRun {
-                                if (rogSpace) VortexShellEngine.setRogMinecraftTextureOnly(selectedMinecraftPreset)
+                                if (rogSpace) VortexShellEngine.setRogMinecraftTextureOnly(context, selectedMinecraftPreset)
                                 VortexShellEngine.launchFreeFire(context, preferMax = false)
                             }
                         },
@@ -893,7 +894,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     Button(
                         onClick = {
                             onRun {
-                                if (rogSpace) VortexShellEngine.setRogMinecraftTextureOnly(selectedMinecraftPreset)
+                                if (rogSpace) VortexShellEngine.setRogMinecraftTextureOnly(context, selectedMinecraftPreset)
                                 VortexShellEngine.launchFreeFire(context, preferMax = true)
                             }
                         },
@@ -951,7 +952,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Pelicin 500Hz & Configs", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
+            listOf("Configs & Head-Brake", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -970,25 +971,25 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     ToggleFeatureCard(
-                        title = "Extreme Touch Slickness 500Hz (Super Licin)",
-                        subtitle = "Mengaktifkan Velocity Impulse + Zero Slop (0px) + Fling Velocity 32000 ke sistem Free Fire.",
+                        title = "Linear LSQ1 Touch Matrix (Anti-Mental Kepala)",
+                        subtitle = "Mematikan extrapolasi sentuhan Android agar saat jari berhenti, bidikan langsung berhenti di kepala.",
                         checked = sensGameLab,
                         onCheckedChange = {
                             sensGameLab = it
                             prefs.edit().putBoolean("sensGameLab", it).apply()
-                            onRun { VortexShellEngine.setDragHsSensitivity(context, it, sensLevel.toInt()) }
+                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "LSQ1Matrix") }
                         }
                     )
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Dynamic Drag Sensitivity (65ms Instant)",
-                        subtitle = "Memangkas jeda sentuhan ke 65ms & mematikan Palm Rejection agar drag langsung naik.",
+                        title = "Dynamic Drag Sensitivity",
+                        subtitle = "Memangkas jeda sentuhan (long_press_timeout 70ms) & mematikan Palm Rejection.",
                         checked = dynSens,
                         onCheckedChange = {
                             dynSens = it
                             prefs.edit().putBoolean("dynSens", it).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "DynamicDrag65ms") }
+                            onRun { VortexShellEngine.setDragHsSensitivity(context, it, sensLevel.toInt()) }
                         }
                     )
                 }
@@ -1001,9 +1002,9 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
                             .padding(16.dp)
                     ) {
-                        Text("Level Kelicinan Layar (1 - 7 Overdrive)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Level Kelicinan Layar (1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text(
-                            "Geser ke LEV.7 untuk kelicinan maksimal tanpa mengubah DPI/Ukuran Layar HP.",
+                            "Mengatur kecepatan angkatan awal drag tanpa mengubah DPI/Ukuran Layar HP.",
                             color = TextGray,
                             fontSize = 12.sp
                         )
@@ -1039,8 +1040,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Sensitivity Adjust (Feather Touch 0.0001)",
-                        subtitle = "Kalibrasi tekanan layar (touch.pressure.scale 0.0001) agar sentuhan tipis langsung terbaca.",
+                        title = "Sensitivity Adjust (Zero Resampling Lag)",
+                        subtitle = "Mematikan ro.input.resampling agar posisi crosshair 1:1 dengan gerakan jempol.",
                         checked = sensAdjust,
                         onCheckedChange = {
                             sensAdjust = it
@@ -1051,25 +1052,25 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "FPS Booster (Nebula ANGLE Minecraft)",
-                        subtitle = "Mengaktifkan driver ANGLE & mengosongkan Texture Cache untuk FPS tertinggi.",
+                        title = "FPS Booster (Hybrid Grafik MC V6)",
+                        subtitle = "Mengaktifkan Hybrid ANGLE + 3D World Pixel Block 0.25 untuk FPS maksimal.",
                         checked = fpsBooster,
                         onCheckedChange = {
                             fpsBooster = it
                             prefs.edit().putBoolean("fpsBooster", it).apply()
-                            onRun { VortexShellEngine.setRogMinecraftTextureOnly(if (it) 3 else 0) }
+                            onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) 3 else 0) }
                         }
                     )
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Hyper Touch Response 500Hz",
-                        subtitle = "Meningkatkan pembacaan sampel sentuhan ke 500 events/detik.",
+                        title = "Hyper Touch Response 300Hz",
+                        subtitle = "Meningkatkan pembacaan sampel sentuhan ke 300 events/detik yang stabil.",
                         checked = hyperTouch,
                         onCheckedChange = {
                             hyperTouch = it
                             prefs.edit().putBoolean("hyperTouch", it).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "HyperTouch500") }
+                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "HyperTouch300") }
                         }
                     )
                 }
@@ -1293,14 +1294,14 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     val vortexFeatures = remember {
         mutableStateListOf(
-            Triple("DRAG HS 99% (CHEAT) [NO ROOT + SAFE]", "Injeksi Fling Velocity 32000 + Impulse Strategy + Zero Slop agar sekali sentak langsung naik ke kepala.", prefs.getBoolean("vf_0", false)),
-            Triple("AIMLOCK PALA (CHEAT) [MAGNET FRICTION]", "Mengunci pengereman vertikal (Scroll Friction 0.0015) pada sistem input Free Fire agar bidikan berhenti tepat di kepala.", prefs.getBoolean("vf_1", false)),
-            Triple("Headtick 95% [LOCK HEAD]", "Meningkatkan akurasi recoil dan mengunci sensitivitas vertikal di area kepala (Safe No Root).", prefs.getBoolean("vf_2", false)),
-            Triple("AimDrag [EXTREME 500Hz PACK]", "Paket lengkap Velocity Impulse + 65ms tap delay + 500Hz polling rate langsung ke PID Free Fire.", prefs.getBoolean("vf_3", false)),
-            Triple("Controller Recoil [ZERO SHAKE]", "Menstabilkan getaran input sentuhan beruntun agar peluru lurus di satu titik kepala.", prefs.getBoolean("vf_4", false)),
-            Triple("Aim Tracking 95%", "Kalibrasi respons sentuhan instan untuk mengikuti musuh lari tanpa jeda.", prefs.getBoolean("vf_5", false)),
-            Triple("Stabilizer Head [SG2 / M1887]", "Menyeimbangkan tarikan M1887 / SG2 jarak dekat agar lengket di kepala seperti di Training Ground.", prefs.getBoolean("vf_6", false)),
-            Triple("Headlock VIP [FIFO REALTIME 99]", "Kunci prioritas CPU/Input FIFO Real-Time (chrt 99 / Nice -20) langsung pada proses Free Fire.", prefs.getBoolean("vf_7", false))
+            Triple("DRAG HS (CHEAT) [NEMPEL PALA]", "Injeksi LSQ1 Linear Velocity + Rem Kepala (MaxFling 3800) agar sekali tarik langsung berhenti tepat di kepala.", prefs.getBoolean("vf_0", false)),
+            Triple("AIMLOCK (CHEAT) [MAGNET HITBOX]", "Mematikan Touch Resampling & mengunci UnityMain ke Big CPU Cores agar Red-Dot Aim Assist lengket di kepala.", prefs.getBoolean("vf_1", false)),
+            Triple("Headtick 95% [LOCK HEAD]", "Meningkatkan akurasi recoil dan mengunci pengereman vertikal di area kepala (Safe No Root).", prefs.getBoolean("vf_2", false)),
+            Triple("AimDrag [ZERO OVERSHOOT PACK]", "Paket lengkap LSQ1 Linear + 70ms tap delay + Scroll Friction 0.035 agar peluru tidak lewat di atas kepala.", prefs.getBoolean("vf_3", false)),
+            Triple("Controller Recoil [NO SHAKE]", "Menstabilkan getaran input sentuhan beruntun agar peluru lurus di satu titik kepala.", prefs.getBoolean("vf_4", false)),
+            Triple("Aim Tracking 95%", "Kalibrasi respons sentuhan 1:1 untuk mengikuti musuh lari tanpa jeda.", prefs.getBoolean("vf_5", false)),
+            Triple("Stabilizer Head [SG2 / M1887]", "Khusus SG2 / M1887 di Training & Clash Squad: menahan lonjakan akhir drag agar nempel di kepala.", prefs.getBoolean("vf_6", false)),
+            Triple("Headlock VIP [FIXED PERFORMANCE]", "Aktifkan Android Fixed Performance Mode + chrt 99 Real-Time pada proses Free Fire.", prefs.getBoolean("vf_7", false))
         )
     }
 
