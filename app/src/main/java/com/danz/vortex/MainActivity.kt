@@ -10,7 +10,6 @@ import android.content.pm.PackageManager
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PixelFormat
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
@@ -21,9 +20,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -137,11 +134,8 @@ object FloatingOverlayController {
     private var monitorParams: WindowManager.LayoutParams? = null
     private var fpsRunning = false
 
-    // Window 1x1px Hardware Accelerated untuk mengunci Touch Sampling & Refresh Rate 120Hz di atas Game
+    // Window 1x1px Transparan Tak Terlihat untuk mengunci Hardware Touch Sampling 120Hz/240Hz
     private var touchBoostView: View? = null
-
-    // Floating VIP In-Game Mod Menu
-    private var modMenuRoot: LinearLayout? = null
 
     var currentStyle = 0
     var currentColor = android.graphics.Color.RED
@@ -157,13 +151,7 @@ object FloatingOverlayController {
 
     fun isCrosshairActive(): Boolean = crosshairView != null
     fun isMonitorActive(): Boolean = monitorLayout != null
-    fun isModMenuActive(): Boolean = modMenuRoot != null
 
-    /**
-     * Mengunci Hardware Composer Layar ke 120Hz & Minimal Post Processing
-     * sehingga layar sentuh benar-benar terasa licin dan responsif saat bermain Free Fire
-     * bahkan pada HP yang belum menyalakan Shizuku!
-     */
     fun setHardwareTouchBoost(context: Context, enable: Boolean) {
         if (!Settings.canDrawOverlays(context)) return
         val appCtx = context.applicationContext
@@ -196,173 +184,6 @@ object FloatingOverlayController {
                 touchBoostView = null
             }
         }
-    }
-
-    /**
-     * Floating VIP Mod Menu yang melayang di atas layar Free Fire!
-     * Bisa dikecilkan jadi ikon bulat "DVX" dan dibuka kapan saja saat di dalam pertandingan.
-     */
-    @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
-    fun toggleInGameModMenu(context: Context, enable: Boolean) {
-        if (!Settings.canDrawOverlays(context)) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-            Toast.makeText(context, "Izinkan 'Tampilkan di atas aplikasi lain' terlebih dahulu!", Toast.LENGTH_LONG).show()
-            return
-        }
-        val appCtx = context.applicationContext
-        val wm = appCtx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-
-        if (!enable) {
-            modMenuRoot?.let {
-                try { wm.removeView(it) } catch (_: Exception) {}
-                modMenuRoot = null
-            }
-            return
-        }
-        if (modMenuRoot != null) return
-
-        val root = LinearLayout(appCtx).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        // Tombol Bulat Floating "DVX"
-        val badgeBg = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(android.graphics.Color.argb(230, 220, 10, 20))
-            setStroke(3, android.graphics.Color.WHITE)
-        }
-        val badgeBtn = TextView(appCtx).apply {
-            text = "DVX\nVIP"
-            textSize = 10f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(android.graphics.Color.WHITE)
-            gravity = Gravity.CENTER
-            background = badgeBg
-            width = 115
-            height = 115
-        }
-
-        // Panel Mod Menu Expandable
-        val panelBg = GradientDrawable().apply {
-            cornerRadius = 28f
-            setColor(android.graphics.Color.argb(235, 18, 6, 6))
-            setStroke(3, android.graphics.Color.rgb(229, 9, 20))
-        }
-        val panel = LinearLayout(appCtx).apply {
-            orientation = LinearLayout.VERTICAL
-            background = panelBg
-            setPadding(28, 22, 28, 22)
-            visibility = View.GONE
-        }
-
-        val titleTv = TextView(appCtx).apply {
-            text = "⚡ DANZVORTEX IN-GAME VIP"
-            textSize = 12f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(android.graphics.Color.rgb(255, 50, 50))
-            setPadding(0, 0, 0, 12)
-        }
-        panel.addView(titleTv)
-
-        fun addModSwitch(label: String, initial: Boolean, onToggle: (Boolean) -> Unit) {
-            val sw = Switch(appCtx).apply {
-                text = label
-                textSize = 11f
-                setTextColor(android.graphics.Color.WHITE)
-                isChecked = initial
-                setPadding(0, 8, 0, 8)
-                setOnCheckedChangeListener { _, isChecked ->
-                    onToggle(isChecked)
-                }
-            }
-            panel.addView(sw)
-        }
-
-        addModSwitch("DRAG HS 90% [CHEAT]", false) { on ->
-            setHardwareTouchBoost(appCtx, on)
-            Thread { VortexShellEngine.setHeadLockCheatEngine(appCtx, on, "InGame-DragHS") }.start()
-            Toast.makeText(appCtx, if (on) "DRAG HS 90% ON!" else "DRAG HS OFF", Toast.LENGTH_SHORT).show()
-        }
-        addModSwitch("AIMLOCK PALA [CHEAT]", false) { on ->
-            setHardwareTouchBoost(appCtx, on)
-            Thread { VortexShellEngine.setHeadLockCheatEngine(appCtx, on, "InGame-AimLock") }.start()
-            Toast.makeText(appCtx, if (on) "AIMLOCK PALA ON!" else "AIMLOCK OFF", Toast.LENGTH_SHORT).show()
-        }
-        addModSwitch("PELICIN LAYAR 240Hz", false) { on ->
-            setHardwareTouchBoost(appCtx, on)
-            Thread { VortexShellEngine.setDragHsSensitivity(appCtx, on, 7) }.start()
-            Toast.makeText(appCtx, if (on) "PELICIN LAYAR MAX ON!" else "PELICIN OFF", Toast.LENGTH_SHORT).show()
-        }
-        addModSwitch("CROSSHAIR AIM", isCrosshairActive()) { on ->
-            toggleCrosshair(appCtx, on)
-        }
-        addModSwitch("TEKSTUR MINECRAFT V2", false) { on ->
-            Thread { VortexShellEngine.setRogMinecraftTextureOnly(if (on) 3 else 0) }.start()
-            Toast.makeText(appCtx, if (on) "Tekstur MC Disuntikkan! Restart FF untuk memuat ulang." else "Tekstur Normal", Toast.LENGTH_SHORT).show()
-        }
-
-        val closeBtn = Button(appCtx).apply {
-            text = "KECILKAN MENU [-]"
-            textSize = 10f
-            setTextColor(android.graphics.Color.WHITE)
-            setBackgroundColor(android.graphics.Color.rgb(160, 10, 15))
-            setOnClickListener {
-                panel.visibility = View.GONE
-                badgeBtn.visibility = View.VISIBLE
-            }
-        }
-        panel.addView(closeBtn)
-
-        root.addView(badgeBtn)
-        root.addView(panel)
-
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 40
-            y = 260
-            preferredRefreshRate = 120f
-        }
-
-        var initX = 0
-        var initY = 0
-        var touchX = 0f
-        var touchY = 0f
-        badgeBtn.setOnTouchListener { _, ev ->
-            when (ev.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initX = params.x
-                    initY = params.y
-                    touchX = ev.rawX
-                    touchY = ev.rawY
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    params.x = initX + (ev.rawX - touchX).toInt()
-                    params.y = initY + (ev.rawY - touchY).toInt()
-                    wm.updateViewLayout(root, params)
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    if (abs(ev.rawX - touchX) < 15 && abs(ev.rawY - touchY) < 15) {
-                        badgeBtn.visibility = View.GONE
-                        panel.visibility = View.VISIBLE
-                    }
-                    true
-                }
-                else -> false
-            }
-        }
-
-        wm.addView(root, params)
-        modMenuRoot = root
     }
 
     fun toggleCrosshair(context: Context, enable: Boolean) {
@@ -453,7 +274,7 @@ object FloatingOverlayController {
             val layout = LinearLayout(appCtx).apply {
                 orientation = LinearLayout.HORIZONTAL
                 background = bgDrawable
-                setPadding(18, 8, 18, 8)
+                setPadding(16, 6, 16, 6)
             }
             val tvStats = TextView(appCtx).apply {
                 textSize = monitorTextSizeSp
@@ -549,10 +370,10 @@ object FloatingOverlayController {
         val layout = monitorLayout ?: return
         tv.textSize = monitorTextSizeSp
         if (isMonitorMiniMode) {
-            layout.setPadding(16, 6, 16, 6)
+            layout.setPadding(14, 5, 14, 5)
             tv.text = "⚡ ${latestFps} FPS"
         } else {
-            layout.setPadding(22, 10, 22, 10)
+            layout.setPadding(20, 8, 20, 8)
             tv.text = "DANZVORTEX | ${latestFps} FPS | RAM: ${latestRam}MB"
         }
     }
@@ -560,15 +381,14 @@ object FloatingOverlayController {
 
 class MainActivity : ComponentActivity() {
 
-    // Listener Resmi Shizuku agar begitu di-Allow langsung aktif tanpa perlu restart APK
     private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
             Thread {
                 VortexShellEngine.bindAndGrantPermissions(applicationContext)
             }.start()
-            Toast.makeText(this, "Shizuku UID 2000 Terhubung! Semua Fitur 100% Aktif!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Shizuku UID 2000 Terhubung ke Sistem Free Fire!", Toast.LENGTH_LONG).show()
         } else {
-            Toast.makeText(this, "Izin Shizuku ditolak! Klik Izinkan agar fitur sistem aktif.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Izin Shizuku ditolak! Klik Izinkan agar fitur aktif.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -789,9 +609,9 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
                         )
                         Text(
                             text = when (currentTab) {
-                                0 -> "Sync System & In-Game Mod Menu"
-                                1 -> "Slickness & Custom Overlay"
-                                2 -> "High Features (Lock Pala No-Root)"
+                                0 -> "Sync System Environment"
+                                1 -> "Explore Features"
+                                2 -> "High Features (Direct FF System)"
                                 else -> "1 Key 1 Device & Reseller Panel"
                             },
                             color = CrimsonRed,
@@ -883,28 +703,13 @@ fun BottomNavChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: 
 @Composable
 fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     val prefs = remember { context.getSharedPreferences("danz_toggles", Context.MODE_PRIVATE) }
-    var inGameModMenu by remember { mutableStateOf(FloatingOverlayController.isModMenuActive()) }
     var tacticalRec by remember { mutableStateOf(prefs.getBoolean("tacticalRec", false)) }
     var rogSpace by remember { mutableStateOf(prefs.getBoolean("rogSpace", false)) }
     var selectedMinecraftPreset by remember { mutableStateOf(prefs.getInt("mcPreset", 3)) }
 
-    val shizukuRunning = VortexShellEngine.isShizukuAvailable()
     val shizukuGranted = VortexShellEngine.hasShizukuPermission()
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // FLOATING MOD MENU VIP DI DALAM GAME (100% WORK & BISA DIKLIK SAAT MAIN FF)
-        item {
-            ToggleFeatureCard(
-                title = "Floating VIP Mod Menu (Tampil di Dalam Game)",
-                subtitle = "Munculkan ikon bulat 'DVX VIP' di atas layar Free Fire untuk menyalakan AimLock, Drag HS, & Pelicin sambil main!",
-                checked = inGameModMenu,
-                onCheckedChange = {
-                    inGameModMenu = it
-                    FloatingOverlayController.toggleInGameModMenu(context, it)
-                }
-            )
-        }
-
         item {
             Column(
                 modifier = Modifier
@@ -914,20 +719,39 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
-                Text("System & Shizuku Diagnostic", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(10.dp))
-                EnvRow("1. Server Shizuku", if (shizukuRunning) "RUNNING (AKTIF)" else "BELUM JALAN (Buka App Shizuku -> Start)")
-                Spacer(modifier = Modifier.height(6.dp))
-                EnvRow("2. Izin UID 2000", if (shizukuGranted) "GRANTED (100% WORK)" else "BELUM DIIZINKAN (Tap Tombol >_)")
-                Spacer(modifier = Modifier.height(6.dp))
-                EnvRow("3. Hardware Touch Lock", "120Hz High-Sampling Ready")
+                Text("Environment", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1F0E0E)).padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Android, contentDescription = null, tint = Color(0xFF3DDC84), modifier = Modifier.size(42.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Android ${Build.VERSION.RELEASE}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1F0E0E)).padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Memory, contentDescription = null, tint = CrimsonRed, modifier = Modifier.size(42.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(Build.HARDWARE.uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                EnvRow("Application", "DANZVORTEX VIP")
+                Spacer(modifier = Modifier.height(8.dp))
+                EnvRow("ABI Supported", Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a")
+                Spacer(modifier = Modifier.height(8.dp))
+                EnvRow("Shizuku UID 2000", if (shizukuGranted) "GRANTED (100% WORK)" else "NOT BOUND (TAP >_)")
             }
         }
 
         item {
             ToggleFeatureCard(
-                title = "Tactical Slickness (InputFlinger Impulse + 120Hz)",
-                subtitle = "Mengubah rumus geseran jari Android ke mode Impulse + mengunci 120Hz Touch Sampling tanpa ubah layar.",
+                title = "Tactical Recommendation",
+                subtitle = "Injeksi kelicinan sentuhan langsung ke sistem InputFlinger & proses Free Fire.",
                 checked = tacticalRec,
                 onCheckedChange = {
                     tacticalRec = it
@@ -937,6 +761,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
             )
         }
 
+        // GAME SPACE TEKSTUR BALOK MINECRAFT (ZERO DOWNSCALE!)
         item {
             Column(
                 modifier = Modifier
@@ -952,10 +777,10 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text("Danz Game Space (Grafik Minecraft / ROG)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Text("Danz Game Space (Tekstur Balok Minecraft / ROG)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Mengubah render tekstur 3D khusus di dalam Free Fire menjadi kotak-kotak ringan (Layar HP & DPI tidak berubah!).",
+                            "Mengubah tekstur balok/tanah/bangunan di dalam Free Fire menjadi kotak-kotak polos (TANPA DOWNSCALE / Resolusi 100% Tajam).",
                             color = TextGray,
                             fontSize = 11.sp,
                             lineHeight = 15.sp
@@ -980,13 +805,13 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Pilih Level Grafik Kotak-Kotak (Wajib Shizuku ON):", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Pilih Mode Tekstur Balok (100% Zero Downscale):", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val presets = listOf(
-                    Triple(1, "ROG / PC Competitive Smooth", "75% 3D Render Buffer + 120FPS Lock"),
-                    Triple(2, "Grafik Minecraft V1 (Semi-Kotak)", "45% Pixel Block + No MSAA (Enteng & Kotak)"),
-                    Triple(3, "Grafik Minecraft V2 (Full Kotak Parah)", "30% Pixel Block + Strip Shader Cache (Super Kotak)")
+                    Triple(1, "ROG / PC Low Texture (No Downscale)", "Texture Cache 6MB + SkiaGL 120FPS (Tajam & Ringan)"),
+                    Triple(2, "Tekstur Balok Minecraft V1 (Flat Mipmap)", "Texture Cache 1MB + Strip Shader (Tekstur Balok Polos)"),
+                    Triple(3, "Tekstur Balok Minecraft V2 (Full Blocky)", "Zero Mipmap Pool (0MB) + Lock UnityShaderCache (Kotak Parah)")
                 )
 
                 presets.forEach { (modeId, title, desc) ->
@@ -1047,8 +872,8 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text("Game Launcher & Injector", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Suntikkan semua fitur aktif & langsung buka Free Fire", color = TextGray, fontSize = 12.sp)
+                        Text("Free Fire System Injector & Launcher", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Otomatis bind ke PID proses Free Fire & terapkan fitur", color = TextGray, fontSize = 12.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1127,7 +952,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Kelicinan & Configs", "Crosshair & Mini Monitor").forEachIndexed { idx, title ->
+            listOf("Configs", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -1147,7 +972,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 item {
                     ToggleFeatureCard(
                         title = "Super Touch Slickness (InputFlinger Impulse)",
-                        subtitle = "Mengaktifkan VelocityTracker Impulse + Hardware 120Hz Window agar layar sentuh langsung licin.",
+                        subtitle = "Mengaktifkan VelocityTracker Impulse + Zero Touch Slop langsung ke sistem Free Fire.",
                         checked = sensGameLab,
                         onCheckedChange = {
                             sensGameLab = it
@@ -1158,13 +983,13 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Dynamic Drag Sensitivity",
-                        subtitle = "Memangkas jeda sentuhan (long_press_timeout 90ms) & mematikan deep_press delay.",
+                        title = "Dynamic Sensitivity",
+                        subtitle = "Memangkas jeda sentuhan (long_press_timeout 85ms) & mengikat prioritas proses Free Fire.",
                         checked = dynSens,
                         onCheckedChange = {
                             dynSens = it
                             prefs.edit().putBoolean("dynSens", it).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "DynamicDrag") }
+                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "DynamicSens") }
                         }
                     )
                 }
@@ -1177,9 +1002,9 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
                             .padding(16.dp)
                     ) {
-                        Text("Level Kelicinan Layar (1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Sensitivity Definition (Level 1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text(
-                            "Geser ke LEV.7 untuk mengaktifkan Velocity Strategy IMPULSE (Tanpa mengubah DPI/Ukuran Layar).",
+                            "Mengatur kelicinan tarikan layar pada sistem Free Fire tanpa mengubah DPI/Ukuran Layar.",
                             color = TextGray,
                             fontSize = 12.sp
                         )
@@ -1203,7 +1028,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Motion Response (120Hz Hardware Lock)",
+                        title = "Motion Response (120Hz Lock)",
                         subtitle = "Memaksa layar tetap berjalan di 120Hz/90Hz saat bermain Free Fire.",
                         checked = motionResp,
                         onCheckedChange = {
@@ -1216,7 +1041,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 item {
                     ToggleFeatureCard(
                         title = "Sensitivity Adjust (Zero Edge Delay)",
-                        subtitle = "Menghapus jeda sentuhan di pinggir layar (back_gesture_inset_scale = 0).",
+                        subtitle = "Menghapus jeda sentuhan di pinggir layar saat menembak.",
                         checked = sensAdjust,
                         onCheckedChange = {
                             sensAdjust = it
@@ -1227,8 +1052,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "FPS Booster (Minecraft Pixel Block Mode)",
-                        subtitle = "Mengubah render 3D di dalam Free Fire menjadi kotak-kotak ringan (Layar HP tetap normal).",
+                        title = "FPS Booster (Tekstur Balok Minecraft)",
+                        subtitle = "Mengubah tekstur balok di dalam Free Fire tanpa downscale agar FPS stabil.",
                         checked = fpsBooster,
                         onCheckedChange = {
                             fpsBooster = it
@@ -1268,7 +1093,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Mini Performance Monitor (Draggable)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                                Text("Bisa digeser dengan jari & diketuk untuk mode kapsul mini!", color = TextGray, fontSize = 12.sp)
+                                Text("Bisa digeser dengan jari & dikecilkan agar tidak menghalangi pandangan!", color = TextGray, fontSize = 12.sp)
                             }
                             Switch(
                                 checked = perfMonitor,
@@ -1469,14 +1294,14 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     val vortexFeatures = remember {
         mutableStateListOf(
-            Triple("DRAG HS (CHEAT) [NO ROOT + SAFE]", "Injeksi VelocityTracker Impulse + 120Hz Hardware Touch Boost agar sekali tarik langsung naik ke kepala.", prefs.getBoolean("vf_0", false)),
-            Triple("AIMLOCK (CHEAT) [NGELOCK PALA]", "Mengunci pengereman titik akhir sentuhan (Scroll Friction 0.004) agar bidikan lengket di kepala & tidak lewat.", prefs.getBoolean("vf_1", false)),
+            Triple("DRAG HS (CHEAT) [NO ROOT + SAFE]", "Injeksi langsung ke proses Free Fire: Velocity Impulse + Zero Slop agar sekali tarik langsung naik ke kepala.", prefs.getBoolean("vf_0", false)),
+            Triple("AIMLOCK (CHEAT) [NGELOCK PALA]", "Mengunci pengereman vertikal (Scroll Friction 0.003) pada sistem input Free Fire agar bidikan berhenti tepat di kepala.", prefs.getBoolean("vf_1", false)),
             Triple("Headtick 80% [LOCK HEAD]", "Meningkatkan akurasi recoil dan mengunci sensitivitas vertikal di area kepala (Safe No Root).", prefs.getBoolean("vf_2", false)),
-            Triple("AimDrag [PACK FULL]", "Paket lengkap Velocity Impulse + zero tap delay + 240Hz polling rate untuk tarikan super ringan.", prefs.getBoolean("vf_3", false)),
+            Triple("AimDrag [PACK FULL]", "Paket lengkap Velocity Impulse + zero tap delay + 240Hz polling rate langsung ke PID Free Fire.", prefs.getBoolean("vf_3", false)),
             Triple("Controller Recoil [NO SHAKE]", "Menstabilkan getaran input sentuhan beruntun agar peluru lurus di satu titik kepala.", prefs.getBoolean("vf_4", false)),
             Triple("Aim Tracking 90%", "Kalibrasi respons sentuhan instan untuk mengikuti musuh lari tanpa jeda.", prefs.getBoolean("vf_5", false)),
             Triple("Stabilizer Head [CLOSE RANGE]", "Menyeimbangkan pergerakan SG2 / SMG jarak dekat agar tetap nempel di kepala.", prefs.getBoolean("vf_6", false)),
-            Triple("Headlock 95% [VIP SHIZUKU]", "Kunci responsivitas sentuhan maksimal melalui Shizuku UID 2000 + Hardware Overlay.", prefs.getBoolean("vf_7", false))
+            Triple("Headlock 95% [VIP SHIZUKU]", "Kunci prioritas CPU/Input Real-Time (-20 Nice) & responsivitas sentuhan maksimal pada Free Fire.", prefs.getBoolean("vf_7", false))
         )
     }
 
