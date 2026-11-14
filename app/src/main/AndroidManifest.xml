@@ -13,17 +13,22 @@
         tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
-    <!-- WAJIB AGAR BISA DETEKSI & BUKA FREE FIRE / SHIZUKU DI ANDROID 11-15 -->
+    <!-- WAJIB AGAR SHIZUKU & FREE FIRE TERDETEKSI 100% DI ANDROID 11-15 -->
     <queries>
         <package android:name="com.dts.freefireth" />
         <package android:name="com.dts.freefiremax" />
         <package android:name="moe.shizuku.privileged.api" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application
         android:allowBackup="true"
         android:label="DANZVORTEX"
         android:supportsRtl="true"
+        android:hardwareAccelerated="true"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
         <activity
