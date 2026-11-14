@@ -130,7 +130,6 @@ object FloatingOverlayController {
     private var monitorTextView: TextView? = null
     private var monitorParams: WindowManager.LayoutParams? = null
     private var fpsRunning = false
-    private var touchBoostView: View? = null
 
     var currentStyle = 0
     var currentColor = android.graphics.Color.RED
@@ -146,39 +145,6 @@ object FloatingOverlayController {
 
     fun isCrosshairActive(): Boolean = crosshairView != null
     fun isMonitorActive(): Boolean = monitorLayout != null
-
-    fun setHardwareTouchBoost(context: Context, enable: Boolean) {
-        if (!Settings.canDrawOverlays(context)) return
-        val appCtx = context.applicationContext
-        val wm = appCtx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        if (enable) {
-            if (touchBoostView != null) return
-            val v = View(appCtx)
-            val params = WindowManager.LayoutParams(
-                1, 1,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                        WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = Gravity.TOP or Gravity.START
-                preferredRefreshRate = 120f
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    preferMinimalPostProcessing = true
-                }
-            }
-            try {
-                wm.addView(v, params)
-                touchBoostView = v
-            } catch (_: Exception) {}
-        } else {
-            touchBoostView?.let {
-                try { wm.removeView(it) } catch (_: Exception) {}
-                touchBoostView = null
-            }
-        }
-    }
 
     fun toggleCrosshair(context: Context, enable: Boolean) {
         if (!Settings.canDrawOverlays(context)) {
@@ -206,14 +172,12 @@ object FloatingOverlayController {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                        WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.CENTER
                 x = currentOffsetX
                 y = currentOffsetY
-                preferredRefreshRate = 120f
             }
             wm.addView(view, params)
             crosshairView = view
@@ -278,13 +242,12 @@ object FloatingOverlayController {
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 x = 24
                 y = 60
-                preferredRefreshRate = 120f
             }
 
             var initialX = 0
@@ -374,7 +337,7 @@ class MainActivity : ComponentActivity() {
     private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
             Thread { VortexShellEngine.bindAndGrantPermissions(applicationContext) }.start()
-            Toast.makeText(this, "Shizuku UID 2000 Terhubung!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Shizuku Aktif & Penyebab Lag Dibersihkan!", Toast.LENGTH_LONG).show()
         } else {
             Toast.makeText(this, "Izin Shizuku ditolak!", Toast.LENGTH_LONG).show()
         }
@@ -507,7 +470,7 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
             isProcessing = true
             val out = withContext(Dispatchers.IO) { block() }
             liveShellOutput = out
-            delay(350)
+            delay(300)
             isProcessing = false
         }
     }
@@ -555,16 +518,16 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
                             text = when (currentTab) {
                                 0 -> "Home"
                                 1 -> "Main Menu"
-                                2 -> "Vortex XIT V9"
+                                2 -> "Vortex XIT V10"
                                 else -> "Key Manager"
                             },
                             color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = when (currentTab) {
-                                0 -> "0-Byte Shader MC & In-Game Keeper Daemon"
-                                1 -> "25ms First-Shot Head-Snap & Visual"
-                                2 -> "High Features (Auto-Keeper Nempel Pala)"
+                                0 -> "Anti-Lag 120FPS & Smooth XIT Injector"
+                                1 -> "Anti-Ngestak Slickness & Visual"
+                                2 -> "High Features (Smooth Nempel Kepala)"
                                 else -> "1 Key 1 Device & Reseller Panel"
                             },
                             color = CrimsonRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
@@ -645,23 +608,22 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     val detectedFF = remember { VortexShellEngine.getInstalledFFPackage(context) }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // PANEL XIT DATA INJECTOR + IN-GAME AUTO-KEEPER DAEMON
         item {
             Column(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
                     .border(1.5.dp, CrimsonRed, RoundedCornerShape(16.dp)).padding(16.dp)
             ) {
-                Text("DANZVORTEX XIT DATA + IN-GAME DAEMON V9", color = CrimsonRed, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                Text("DANZVORTEX SMOOTH XIT INJECTOR V10 (ZERO LAG)", color = CrimsonRed, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = if (xitInjected) "● STATUS: DAEMON AKTIF & LOCKED ($detectedFF)" else "● STATUS: READY TO INJECT ($detectedFF)",
+                    text = if (xitInjected) "● STATUS: SMOOTH XIT INJECTED ($detectedFF)" else "● STATUS: READY TO INJECT ($detectedFF)",
                     color = if (xitInjected) Color(0xFF00E676) else TextGray,
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Menjaga sensitivitas 25ms First-Shot & Glove Touch tetap menyala setiap 2.5 detik di dalam Free Fire agar tidak di-reset HP!",
+                    text = "Injeksi 1x bersih tanpa loop berat: membuka kunci ShaderCache (Anti Patah-patah) + kalibrasi Head-Snap mulus.",
                     color = TextGray,
                     fontSize = 11.sp
                 )
@@ -676,7 +638,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     modifier = Modifier.fillMaxWidth().height(46.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("INJECT XIT DATA + START KEEPER DAEMON", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                    Text("INJECT XIT DATA + FIX PATAH-PATAH", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(
@@ -688,7 +650,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     modifier = Modifier.fillMaxWidth().height(42.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("STOP DAEMON & RESTORE NORMAL", color = TextGray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("RESTORE DATA & RESET NORMAL", color = TextGray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }
@@ -704,14 +666,14 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 Spacer(modifier = Modifier.height(6.dp))
                 EnvRow("Shizuku UID 2000", if (shizukuGranted) "GRANTED (100% WORK)" else "NOT BOUND (TAP >_)")
                 Spacer(modifier = Modifier.height(6.dp))
-                EnvRow("Shader MC Engine", "0-Byte Hash Truncate + Global ANGLE")
+                EnvRow("VRAM & Shader Cache", "96MB Unlocked (Anti-Stutter)")
             }
         }
 
         item {
             ToggleFeatureCard(
-                title = "25ms First-Shot Head-Snap (Anti-Nempel Badan)",
-                subtitle = "Memangkas jeda tembakan pertama ke 25ms + MinFling 800 agar peluru pertama langsung lompat ke kepala.",
+                title = "Smooth Drag Slickness (Anti-Ngestak 165ms)",
+                subtitle = "Melicinkan tarikan ke kepala tanpa memutus tahanan tombol tembak & tanpa membebani CPU.",
                 checked = tacticalRec,
                 onCheckedChange = {
                     tacticalRec = it
@@ -732,10 +694,10 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text("Danz Game Space (Grafik MC 0-Byte Shader Lock)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Text("Danz Game Space (Grafik Ringan & MC V10)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Mengosongkan isi file shader di UnityShaderCache menjadi 0-byte & mengunci chmod 444 + Global ANGLE=1 (100% Tanpa Downscale!).",
+                            "Mengaktifkan Prerelease/ANGLE Driver + Auto-Inject Config dari folder Download/mc_config ke gameassetbundles (Tanpa Lag!).",
                             color = TextGray, fontSize = 11.sp, lineHeight = 15.sp
                         )
                     }
@@ -752,9 +714,9 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
                 Spacer(modifier = Modifier.height(10.dp))
                 val presets = listOf(
-                    Triple(1, "Mode 1: 0-Byte Shader Truncate + Native GL", "Kosongkan File Shader Hash ke 0-Byte + chmod 444"),
-                    Triple(2, "Mode 2: Global ANGLE=1 + 0-Byte Shader Lock", "Paksa All-ANGLE ON + Kunci File Shader 0-Byte"),
-                    Triple(3, "Mode 3: FULL BLOCKY MC V9 (Zero Texture Pool)", "Global ANGLE=1 + 0-Byte Shader Hash + 0MB GPU Cache")
+                    Triple(1, "Mode 1: ROG / PC Smooth 120FPS (SkiaGL)", "VRAM Cache 96MB + Unlock ShaderCache (Super Enteng)"),
+                    Triple(2, "Mode 2: SkiaVK Vulkan + Low Mipmap Config", "Vulkan Renderer + Mipmap Limit 3 (Tanpa Downscale)"),
+                    Triple(3, "Mode 3: ANGLE Driver + Auto-Inject mc_config", "ANGLE Driver + Suntik File Download/mc_config ke FF")
                 )
 
                 presets.forEach { (modeId, title, desc) ->
@@ -785,6 +747,22 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             colors = RadioButtonDefaults.colors(selectedColor = CrimsonRed, unselectedColor = TextGray)
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        try {
+                            val intent = Intent("android.settings.GRAPHICS_DRIVER_SETTINGS")
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Buka Opsi Pengembang -> Preferensi Driver Grafis", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Buka Preferensi Driver Grafis Bawaan HP", color = CrimsonRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -860,7 +838,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Pelicin & Glove Touch", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
+            listOf("Pelicin Anti-Lag", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
                 Box(
                     modifier = Modifier.clip(RoundedCornerShape(8.dp))
                         .background(if (subTab == idx) CrimsonRed else CardDark)
@@ -877,8 +855,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     ToggleFeatureCard(
-                        title = "OEM Glove & High-Touch Sensitivity Unlock",
-                        subtitle = "Membuka kunci sensitivitas layar tingkat perangkat keras (Vivo/Xiaomi/Oppo/Realme/Samsung/Infinix).",
+                        title = "Smooth LSQ2 Touch Matrix (Anti-Ngestak)",
+                        subtitle = "Kalibrasi kurva geseran lsq2 + 180 events/sec yang 100% sinkron dengan mesin Unity tanpa lag.",
                         checked = sensGameLab,
                         onCheckedChange = {
                             sensGameLab = it
@@ -889,8 +867,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "25ms First-Shot Instant Drag",
-                        subtitle = "Memangkas jeda tembakan pertama ke 25ms agar peluru tidak sempat menempel di dada.",
+                        title = "Dynamic Drag Sensitivity (165ms Clean Hold)",
+                        subtitle = "Mencegah tombol tembak terputus saat ditahan untuk drag headshot.",
                         checked = dynSens,
                         onCheckedChange = {
                             dynSens = it
@@ -905,7 +883,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             .border(1.dp, CardBorder, RoundedCornerShape(14.dp)).padding(16.dp)
                     ) {
                         Text("Level Kelicinan Tarikan (1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Geser ke LEV.7 untuk daya angkat maksimal ke kepala tanpa ubah DPI layar.", color = TextGray, fontSize = 12.sp)
+                        Text("Geser ke LEV.7 untuk daya angkat mulus ke kepala tanpa ubah DPI layar.", color = TextGray, fontSize = 12.sp)
                         Slider(
                             value = sensLevel,
                             onValueChange = { sensLevel = it },
@@ -921,20 +899,20 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Motion Response (120Hz Hardware Lock)",
-                        subtitle = "Memaksa layar tetap berjalan di 120Hz/90Hz saat bermain Free Fire.",
+                        title = "Motion Response (Zero Animation Lag)",
+                        subtitle = "Mematikan beban animasi sistem Android saat bermain Free Fire.",
                         checked = motionResp,
                         onCheckedChange = {
                             motionResp = it
                             prefs.edit().putBoolean("motionResp", it).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "Motion120Hz") }
+                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "MotionSmooth") }
                         }
                     )
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Zero Resampling Lag (1:1 Touch Sync)",
-                        subtitle = "Mematikan ro.input.resampling agar titik tembak 1:1 dengan sentakan jempol.",
+                        title = "Touch Slop 1px Stabilizer",
+                        subtitle = "Menjaga titik bidik tidak bergetar namun langsung merespons tarikan vertikal.",
                         checked = sensAdjust,
                         onCheckedChange = {
                             sensAdjust = it
@@ -945,13 +923,13 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "FPS Booster (0-Byte Shader Blocky Mode)",
-                        subtitle = "Mengunci file shader ke 0-byte & mengaktifkan Global ANGLE tanpa downscale.",
+                        title = "FPS Booster (96MB VRAM + Shader Unlock)",
+                        subtitle = "Membuka kunci UnityShaderCache & meluaskan VRAM cache agar tidak patah-patah.",
                         checked = fpsBooster,
                         onCheckedChange = {
                             fpsBooster = it
                             prefs.edit().putBoolean("fpsBooster", it).apply()
-                            onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) 3 else 0) }
+                            onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) 1 else 0) }
                         }
                     )
                 }
@@ -1142,14 +1120,14 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     val vortexFeatures = remember {
         mutableStateListOf(
-            Triple("DRAG HS (CHEAT) [25ms FIRST-SHOT SNAP]", "Injeksi 25ms First-Shot Lift + MinFling 800 + Keeper Daemon agar peluru pertama langsung lompat dari dada ke kepala.", prefs.getBoolean("vf_0", false)),
-            Triple("AIMLOCK (CHEAT) [AUTO-KEEPER PALA]", "Menjaga suntikan XIT HeadLock tetap menyala setiap 2.5 detik di background agar tidak bisa di-reset sistem HP.", prefs.getBoolean("vf_1", false)),
-            Triple("Headtick 99% [GLOVE TOUCH UNLOCK]", "Membuka kunci OEM Glove Touch / High-Sensitivity Mode + mengunci pengereman vertikal di area kepala.", prefs.getBoolean("vf_2", false)),
-            Triple("AimDrag [CHEST-BREAKER V9 PACK]", "Paket lengkap XIT Data + 25ms tap delay + Scroll Friction 0.0025 agar tidak nyangkut di badan.", prefs.getBoolean("vf_3", false)),
+            Triple("DRAG HS (CHEAT) [SMOOTH HEAD-SNAP]", "Injeksi LSQ2 Curve + MinFling 320 + MaxFling 14500 agar tarikan ke kepala enteng & bebas ngestak.", prefs.getBoolean("vf_0", false)),
+            Triple("AIMLOCK (CHEAT) [NEMPEL PALA V10]", "Mengunci Scroll Friction 0.0065 & Y-Axis Multiplier 2.45 tanpa membuat frame drop/patah-patah.", prefs.getBoolean("vf_1", false)),
+            Triple("Headtick 99% [ZERO STUTTER]", "Meningkatkan akurasi recoil dan mengunci pengereman vertikal di area kepala (100% Bebas Lag).", prefs.getBoolean("vf_2", false)),
+            Triple("AimDrag [SMOOTH 180Hz PACK]", "Paket lengkap 165ms Clean Hold + 180Hz Input Sync agar tombol tembak tidak pernah macet.", prefs.getBoolean("vf_3", false)),
             Triple("Controller Recoil [NO SHAKE]", "Menstabilkan getaran input sentuhan beruntun agar peluru lurus di satu titik kepala.", prefs.getBoolean("vf_4", false)),
-            Triple("Aim Tracking 95%", "Kalibrasi respons sentuhan 1:1 untuk mengikuti musuh lari tanpa jeda.", prefs.getBoolean("vf_5", false)),
-            Triple("Stabilizer Head [SG2 / UMP / M1887]", "Khusus SG2 & SMG di Training Ground: memutus magnet dada dan mengunci red-dot di kepala.", prefs.getBoolean("vf_6", false)),
-            Triple("Headlock VIP [FIFO REALTIME 99]", "Aktifkan Android Fixed Performance Mode + taskset Big CPU Cores pada proses Free Fire.", prefs.getBoolean("vf_7", false))
+            Triple("Aim Tracking 95%", "Kalibrasi respons sentuhan 1:1 untuk mengikuti musuh lari dengan mulus.", prefs.getBoolean("vf_5", false)),
+            Triple("Stabilizer Head [SG2 / UMP / M1887]", "Khusus SG2 & SMG: memutus magnet dada dan mengunci red-dot di kepala tanpa frame drop.", prefs.getBoolean("vf_6", false)),
+            Triple("Safe CPU Priority [-10 Nice Boost]", "Menaikkan prioritas Free Fire secara aman tanpa membuat SurfaceFlinger atau layar macet.", prefs.getBoolean("vf_7", false))
         )
     }
 
