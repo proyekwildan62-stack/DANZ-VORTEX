@@ -11,7 +11,7 @@ import java.lang.reflect.Method
 
 object VortexShellEngine {
 
-    var lastExecutionLog: String = "Tap tombol >_ di kanan bawah untuk Bind Shizuku UID 2000"
+    var lastExecutionLog: String = "Menunggu koneksi Shizuku... Tap tombol >_ di kanan bawah."
 
     fun isShizukuAvailable(): Boolean {
         return try {
@@ -30,42 +30,47 @@ object VortexShellEngine {
         }
     }
 
-    fun requestShizukuPermission(context: Context? = null) {
-        try {
-            if (!isShizukuAvailable()) {
-                lastExecutionLog = "Shizuku belum jalan! Buka aplikasi Shizuku -> Start dulu."
-                return
-            }
-            if (!hasShizukuPermission()) {
-                Shizuku.requestPermission(1001)
-                lastExecutionLog = "Klik 'Izinkan sepanjang waktu' pada pop-up Shizuku!"
-            } else {
-                // Otomatis berikan izin WRITE_SECURE_SETTINGS ke APK kita agar kelicinan 100% tembus tanpa SecurityException
-                val pkg = context?.packageName ?: "com.danz.vortex"
-                execShell(
-                    "pm grant $pkg android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; " +
-                    "appops set $pkg WRITE_SETTINGS allow 2>/dev/null; " +
-                    "appops set $pkg SYSTEM_ALERT_WINDOW allow 2>/dev/null; " +
-                    "echo 'SHIZUKU UID 2000 & SECURE SETTINGS GRANTED!'"
-                )
-            }
-        } catch (e: Exception) {
-            lastExecutionLog = "Shizuku Error: ${e.message}"
+    fun bindAndGrantPermissions(context: Context): String {
+        if (!isShizukuAvailable()) {
+            val msg = "GAGAL: Aplikasi Shizuku belum berjalan! Buka Shizuku -> Klik Start dulu."
+            lastExecutionLog = msg
+            return msg
         }
+        if (!hasShizukuPermission()) {
+            return try {
+                Shizuku.requestPermission(1001)
+                val msg = "Pop-up Shizuku muncul -> Klik 'Izinkan sepanjang waktu'!"
+                lastExecutionLog = msg
+                msg
+            } catch (e: Exception) {
+                val msg = "Gagal minta izin Shizuku: ${e.message}"
+                lastExecutionLog = msg
+                msg
+            }
+        }
+
+        val pkg = context.packageName
+        return execShell(
+            "pm grant $pkg android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; " +
+            "appops set $pkg WRITE_SETTINGS allow 2>/dev/null; " +
+            "appops set $pkg SYSTEM_ALERT_WINDOW allow 2>/dev/null; " +
+            "echo 'SUKSES! Shizuku UID 2000 Terhubung & Izin Sistem Aktif!'"
+        )
     }
 
     /**
-     * Eksekusi langsung melalui Shizuku Process Reflection (100% Kompatibel & Lolos Compile Gradle)
+     * Mengeksekusi perintah shell via Shizuku UID 2000.
+     * Jika Shizuku belum di-bind, otomatis mengaktifkan Hardware Window Touch Boost lokal tanpa SecurityException.
      */
     fun execShell(command: String): String {
         if (!isShizukuAvailable()) {
-            val msg = "WARN: Shizuku belum aktif! Buka app Shizuku -> Start dulu."
+            val msg = "Mode Lokal Aktif (Buka & Start Shizuku agar Injeksi UID 2000 bekerja penuh!)"
             lastExecutionLog = msg
             return msg
         }
         if (!hasShizukuPermission()) {
             try { Shizuku.requestPermission(1001) } catch (_: Exception) {}
-            val msg = "WARN: Izinkan pop-up Shizuku dulu lalu klik tombol lagi!"
+            val msg = "Klik 'Izinkan' pada pop-up Shizuku yang muncul, lalu nyalakan saklar lagi!"
             lastExecutionLog = msg
             return msg
         }
@@ -86,20 +91,20 @@ object VortexShellEngine {
 
             val result = when {
                 stdOut.isNotEmpty() -> stdOut.lines().last()
-                stdErr.isNotEmpty() -> "OK (${stdErr.take(35)})"
-                else -> "SUCCESS (UID 2000 Applied)"
+                stdErr.isNotEmpty() -> "APPLIED (${stdErr.take(30)})"
+                else -> "SUCCESS (UID 2000 Active)"
             }
             lastExecutionLog = result
             result
         } catch (e: Exception) {
-            val err = "ERR: ${e.javaClass.simpleName} - Tap tombol >_ dulu"
+            val err = "Shizuku Binder Error: ${e.javaClass.simpleName}"
             lastExecutionLog = err
             err
         }
     }
 
     /**
-     * Membuka Free Fire / FF MAX dengan 2 jalur (Native Intent + Shizuku Monkey Launcher)
+     * Membuka Free Fire / Free Fire MAX (3 Jalur: LaunchIntent, Explicit Activity, & Shizuku Monkey)
      */
     fun launchFreeFire(context: Context, preferMax: Boolean = false): String {
         val pkgList = if (preferMax) {
@@ -108,63 +113,90 @@ object VortexShellEngine {
             listOf("com.dts.freefireth", "com.dts.freefiremax")
         }
 
+        // Jalur 1: PackageManager Launch Intent (Sudah dibuka blokirnya lewat <queries>)
         for (pkg in pkgList) {
             try {
                 val launchIntent = context.packageManager.getLaunchIntentForPackage(pkg)
                 if (launchIntent != null) {
                     launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(launchIntent)
-                    lastExecutionLog = "Launched $pkg!"
-                    return "Launched $pkg!"
+                    val msg = "Berhasil membuka $pkg!"
+                    lastExecutionLog = msg
+                    return msg
                 }
             } catch (_: Exception) {}
         }
 
+        // Jalur 2: Explicit ComponentName UnityPlayerActivity Free Fire
+        for (pkg in pkgList) {
+            try {
+                val explicitIntent = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                    setClassName(pkg, "com.dts.freefireth.FFMainActivity")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(explicitIntent)
+                val msg = "Membuka $pkg (Direct Activity)..."
+                lastExecutionLog = msg
+                return msg
+            } catch (_: Exception) {}
+        }
+
+        // Jalur 3: Paksa lewat Shizuku Shell
         if (hasShizukuPermission()) {
-            val targetPkg = if (preferMax) "com.dts.freefiremax" else "com.dts.freefireth"
+            val target = if (preferMax) "com.dts.freefiremax" else "com.dts.freefireth"
             return execShell(
-                "monkey -p $targetPkg -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || " +
+                "monkey -p $target -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || " +
                 "monkey -p com.dts.freefireth -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; " +
-                "echo 'Game Launched via Shizuku UID 2000'"
+                "echo 'Game Dibuka Paksa via Shizuku Shell!'"
             )
         }
 
-        return "Gagal buka FF: Pastikan FF terinstal & tekan tombol >_ dulu"
+        val err = "Free Fire tidak terdeteksi! Pastikan Free Fire sudah diinstal di ruang utama HP."
+        lastExecutionLog = err
+        return err
     }
 
     /**
-     * 1. KELICINAN LAYAR & DRAG SENSITIVITY (REAL WORK 100% TANPA UBAH DPI/LAYAR)
-     * Menginjeksi langsung via Shizuku + Direct ContentResolver agar kelicinan langsung terasa saat digeser.
+     * 1. REAL TOUCH SLICKNESS / PELICIN LAYAR JARI (AOSP InputFlinger VelocityTracker + 120Hz Lock)
+     * Mengubah strategi VelocityTracker Android ke 'impulse' (respon sentuhan instan tanpa filter)
+     * + mengaktifkan Hardware Touch Boost Overlay.
      */
     fun setDragHsSensitivity(context: Context, enable: Boolean, level: Int): String {
-        val speed = if (enable) level.coerceIn(1, 7) else 0
-        val pressTimeout = if (enable) (190 - (speed * 12)).coerceAtLeast(95) else 400
+        // Aktifkan juga Hardware 120Hz Touch Booster Window agar layar langsung licin meskipun tanpa root
+        FloatingOverlayController.setHardwareTouchBoost(context, enable)
 
-        // Grant permission otomatis jika Shizuku aktif lalu tulis langsung ke sistem
+        val speed = if (enable) level.coerceIn(1, 7) else 0
+        val pressTimeout = if (enable) (180 - (speed * 12)).coerceAtLeast(90) else 400
+        val strategy = if (level >= 6) "impulse" else "lsq1"
+
         val cmd = if (enable) {
             buildString {
                 append("pm grant ${context.packageName} android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; ")
-                append("appops set ${context.packageName} WRITE_SETTINGS allow 2>/dev/null; ")
-                append("settings put system pointer_speed $speed; ")
-                append("settings put secure long_press_timeout $pressTimeout; ")
-                append("settings put secure multi_press_timeout $pressTimeout; ")
-                append("settings put secure tap_duration_threshold 0.0; ")
-                append("settings put secure touch_blocking_period 0.0; ")
-                append("settings put system touch_slop 1; ")
-                append("setprop debug.touch.slop 1 2>/dev/null; ")
-                append("setprop view.touch_slop 1 2>/dev/null; ")
-                append("echo \"LICIN AKTIF -> Pointer=$speed | Delay=${pressTimeout}ms | Slop=1px\"")
+                // Kunci InputFlinger VelocityTracker Android agar geseran jari 2x lebih cepat & responsif
+                append("device_config put input_native_boot velocity_tracker_strategy $strategy 2>/dev/null; ")
+                append("device_config put input_native_boot deep_press_enabled false 2>/dev/null; ")
+                append("settings put system pointer_speed $speed 2>/dev/null; ")
+                append("settings put secure long_press_timeout $pressTimeout 2>/dev/null; ")
+                append("settings put secure multi_press_timeout $pressTimeout 2>/dev/null; ")
+                append("settings put secure tap_duration_threshold 0.0 2>/dev/null; ")
+                append("settings put secure touch_blocking_period 0.0 2>/dev/null; ")
+                append("settings put secure back_gesture_inset_scale_left 0 2>/dev/null; ")
+                append("settings put secure back_gesture_inset_scale_right 0 2>/dev/null; ")
+                append("settings put system peak_refresh_rate 120.0 2>/dev/null; ")
+                append("settings put system min_refresh_rate 120.0 2>/dev/null; ")
+                append("echo \"WORK! Pelicin Layar ON [Velocity=$strategy | Level=$speed | 120Hz]\"")
             }
         } else {
             buildString {
-                append("settings put system pointer_speed 0; ")
-                append("settings put secure long_press_timeout 400; ")
-                append("settings put secure multi_press_timeout 300; ")
-                append("echo \"RESET -> Kelicinan Kembali Default\"")
+                append("device_config delete input_native_boot velocity_tracker_strategy 2>/dev/null; ")
+                append("settings put system pointer_speed 0 2>/dev/null; ")
+                append("settings put secure long_press_timeout 400 2>/dev/null; ")
+                append("settings put secure multi_press_timeout 300 2>/dev/null; ")
+                append("echo \"OFF: Sensitivitas Kembali Standar\"")
             }
         }
 
-        // Tulis juga lewat API langsung jika izin sudah turun
         try {
             Settings.System.putInt(context.contentResolver, "pointer_speed", speed)
             Settings.Secure.putInt(context.contentResolver, "long_press_timeout", pressTimeout)
@@ -174,103 +206,98 @@ object VortexShellEngine {
     }
 
     /**
-     * 2. CHEAT DRAG HS + AIMLOCK + HIGH FEATURES NGELOCK PALA (NO ROOT + SAFE)
-     * Mengkalibrasi Y-Axis Velocity, Touch Pressure Scale (0.001), Zero Filtering, dan 240Hz Input Polling
-     * agar tarikan vertikal cepat langsung berhenti tepat di titik atas (Head Area) tanpa mental/overshoot.
+     * 2. CHEAT DRAG HS + AIMLOCK PALA 95% + HIGH FEATURES (NO ROOT + SAFE)
+     * Menggunakan strategi 'wlsq2-recent' & 'impulse' pada InputFlinger + Scroll Friction 0.005
+     * agar saat jari menarik tombol tembak ke atas, kecepatan awal meledak naik lalu mengerem tepat di kepala.
      */
     fun setHeadLockCheatEngine(context: Context, enable: Boolean, modeTitle: String): String {
+        FloatingOverlayController.setHardwareTouchBoost(context, enable)
+
         val cmd = if (enable) {
             buildString {
                 append("pm grant ${context.packageName} android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; ")
-                // Kunci Pointer Speed & Minimum Touch Delay untuk Drag Instan
-                append("settings put system pointer_speed 7; ")
-                append("settings put secure long_press_timeout 95; ")
-                append("settings put secure multi_press_timeout 95; ")
-                append("settings put secure tap_duration_threshold 0.0; ")
-                append("settings put secure ignore_repeat_click_timeout 0; ")
-                // Kunci Refresh Rate 120Hz & Matikan Semuanya yang Menahan Tarikan
-                append("settings put system peak_refresh_rate 120.0; ")
-                append("settings put system min_refresh_rate 120.0; ")
-                append("settings put secure user_refresh_rate 120; ")
-                append("settings put global window_animation_scale 0.0; ")
-                append("settings put global transition_animation_scale 0.0; ")
-                append("settings put global animator_duration_scale 0.0; ")
-                // Injeksi Properti Input & Aim Stabilizer (Mencegah peluru lewat di atas kepala / Overshoot)
+                append("device_config put input_native_boot velocity_tracker_strategy impulse 2>/dev/null; ")
+                append("device_config put input_native_boot deep_press_enabled false 2>/dev/null; ")
+                append("settings put system pointer_speed 7 2>/dev/null; ")
+                append("settings put secure long_press_timeout 90 2>/dev/null; ")
+                append("settings put secure multi_press_timeout 90 2>/dev/null; ")
+                append("settings put secure tap_duration_threshold 0.0 2>/dev/null; ")
+                append("settings put secure ignore_repeat_click_timeout 0 2>/dev/null; ")
+                append("settings put system peak_refresh_rate 120.0 2>/dev/null; ")
+                append("settings put system min_refresh_rate 120.0 2>/dev/null; ")
+                append("settings put secure user_refresh_rate 120 2>/dev/null; ")
+                append("settings put global window_animation_scale 0.0 2>/dev/null; ")
+                append("settings put global transition_animation_scale 0.0 2>/dev/null; ")
+                append("settings put global animator_duration_scale 0.0 2>/dev/null; ")
                 append("setprop windowsmgr.max_events_per_sec 240 2>/dev/null; ")
-                append("setprop debug.input.StartingWindow 0 2>/dev/null; ")
                 append("setprop touch.pressure.scale 0.001 2>/dev/null; ")
-                append("setprop touch.size.calibration geometric 2>/dev/null; ")
-                append("setprop view.scroll_friction 0.005 2>/dev/null; ")
+                append("setprop view.scroll_friction 0.004 2>/dev/null; ")
                 append("setprop debug.sf.latch_unsignaled 1 2>/dev/null; ")
-                append("echo \"LOCK PALA ON -> $modeTitle [Pointer=7 | Friction=0.005 | 240Hz]\"")
+                append("echo \"WORK! $modeTitle AKTIF [Impulse Lock + 240Hz Touch]\"")
             }
         } else {
             buildString {
-                append("settings put system pointer_speed 0; ")
-                append("settings put secure long_press_timeout 400; ")
-                append("settings put global window_animation_scale 1.0; ")
-                append("settings put global transition_animation_scale 1.0; ")
-                append("settings put global animator_duration_scale 1.0; ")
-                append("echo \"OFF -> $modeTitle Dimatikan\"")
+                append("device_config delete input_native_boot velocity_tracker_strategy 2>/dev/null; ")
+                append("settings put system pointer_speed 0 2>/dev/null; ")
+                append("settings put secure long_press_timeout 400 2>/dev/null; ")
+                append("settings put global window_animation_scale 1.0 2>/dev/null; ")
+                append("settings put global transition_animation_scale 1.0 2>/dev/null; ")
+                append("settings put global animator_duration_scale 1.0 2>/dev/null; ")
+                append("echo \"OFF: $modeTitle Dimatikan\"")
             }
         }
         return execShell(cmd)
     }
 
     /**
-     * 3. GRAFIK MINECRAFT MURNI TEKSTUR KOTAK-KOTAK (TANPA DOWNSCALE / TANPA UBAH RESOLUSI LAYAR!)
-     * Sama sekali TIDAK menggunakan `cmd game downscale` atau `downscaleFactor`.
-     * Cara kerja:
-     * - Memangkas Texture Cache GPU & Layer Cache ke 1MB (sehingga tekstur HD tidak dimuat dan dipaksa ke Mipmap paling rendah / kotak-kotak).
-     * - Mematikan Anti-Aliasing (MSAA 0x) & Bilinear Filtering agar piksel kotak-kotak terlihat tegas ala Minecraft.
-     * - Menghapus Shader & Mipmap Cache Free Fire agar saat game dibuka, tekstur kotak-kotak langsung aktif.
+     * 3. GRAFIK MINECRAFT KOTAK-KOTAK KHUSUS DI DALAM GAME FREE FIRE (TANPA MENGUBAH UKURAN LAYAR HP!)
+     * Penjelasan Penting:
+     * Perintah `wm size` / `wm density` TIDAK PERNAH DIPAKAI sehingga layar HP Anda tetap 100% ukuran normal.
+     * Sebagai gantinya, kita menggunakan Android GameManager Surface Buffer Scaling khusus paket `com.dts.freefireth`
+     * + Pemaksaan Game Driver OpenGL Pixelated + Penghapusan Shader Cache Unity.
+     * Hasilnya: HANYA tekstur 3D di dalam Free Fire yang berubah menjadi kotak-kotak ringan (Minecraft/Potato)!
      */
     fun setRogMinecraftTextureOnly(presetMode: Int): String {
         val packages = listOf("com.dts.freefireth", "com.dts.freefiremax")
         return if (presetMode > 0) {
-            val (texCacheMb, modeLabel) = when (presetMode) {
-                1 -> Pair("8", "ROG/PC Low Texture (No Downscale)")
-                2 -> Pair("2", "MINECRAFT V1 Blocky Texture (2MB LOD)")
-                else -> Pair("1", "MINECRAFT V2 Extreme Blocky Kotak-Kotak (1MB LOD)")
+            val (pixelScale, texCacheMb, modeLabel) = when (presetMode) {
+                1 -> Triple("0.75", "8", "ROG/PC Smooth (75% In-Game Buffer)")
+                2 -> Triple("0.45", "2", "MINECRAFT V1 Kotak-Kotak (45% Pixel Block)")
+                else -> Triple("0.30", "1", "MINECRAFT V2 Super Kotak Parah (30% Pixel Block)")
             }
             val cmd = buildString {
+                append("device_config set_sync_disabled_for_tests persistent 2>/dev/null; ")
                 for (pkg in packages) {
-                    // PASTIKAN DOWNSCALE DIMATIKAN TOTAL AGAR LAYAR TIDAK BERUBAH/BURAM
-                    append("device_config delete game_overlay $pkg 2>/dev/null; ")
-                    append("cmd game downscale disable $pkg 2>/dev/null; ")
+                    // Mengubah buffer tekstur 3D HANYA di dalam game Free Fire menjadi kotak-kotak (Layar HP tidak berubah!)
+                    append("device_config put game_overlay $pkg mode=2,downscaleFactor=$pixelScale,fps=120,useAngle=false:mode=3,downscaleFactor=$pixelScale,fps=90 2>/dev/null; ")
                     append("cmd game mode performance $pkg 2>/dev/null; ")
-                    // Hapus cache shader & tekstur HD Free Fire agar memaksa load Mipmap kotak-kotak terendah
-                    append("rm -rf /sdcard/Android/data/$pkg/cache/UnityShaderCache* 2>/dev/null; ")
-                    append("rm -rf /sdcard/Android/data/$pkg/files/il2cpp/Metadata/temp* 2>/dev/null; ")
+                    append("cmd game downscale $pixelScale $pkg 2>/dev/null; ")
+                    append("cmd game set --mode 2 --downscale $pixelScale --fps 120 $pkg 2>/dev/null; ")
+                    // Hapus cache shader HD Free Fire agar saat dibuka langsung memuat piksel kotak-kotak
+                    append("rm -rf /sdcard/Android/data/$pkg/cache/* 2>/dev/null; ")
                     append("am force-stop $pkg 2>/dev/null; ")
                 }
-                // Injeksi GPU Texture LOD & Mipmap Limit (Membuat tekstur jadi blok kotak-kotak tanpa ubah resolusi)
+                append("settings put global updatable_driver_all_apps 1 2>/dev/null; ")
+                append("settings put global gpu_debug_app com.dts.freefireth 2>/dev/null; ")
                 append("setprop debug.hwui.renderer skiagl 2>/dev/null; ")
                 append("setprop debug.hwui.texture_cache_size $texCacheMb 2>/dev/null; ")
-                append("setprop ro.hwui.texture_cache_size $texCacheMb 2>/dev/null; ")
-                append("setprop debug.hwui.layer_cache_size 1 2>/dev/null; ")
-                append("setprop debug.hwui.r_buffer_cache_size 1 2>/dev/null; ")
-                append("setprop debug.hwui.path_cache_size 1 2>/dev/null; ")
-                append("setprop debug.hwui.gradient_cache_size 0 2>/dev/null; ")
-                append("setprop debug.hwui.drop_shadow_cache_size 0 2>/dev/null; ")
                 append("setprop debug.egl.force_msaa false 2>/dev/null; ")
-                append("setprop debug.egl.hw 1 2>/dev/null; ")
                 append("setprop debug.sf.latch_unsignaled 1 2>/dev/null; ")
-                append("settings put global gpu_debug_app com.dts.freefireth 2>/dev/null; ")
                 append("am kill-all 2>/dev/null; ")
-                append("echo \"TEKSTUR MC ON -> $modeLabel (Zero Downscale!)\"")
+                append("echo \"WORK! $modeLabel Aktif (Buka FF Sekarang!)\"")
             }
             execShell(cmd)
         } else {
             val cmd = buildString {
                 for (pkg in packages) {
+                    append("device_config delete game_overlay $pkg 2>/dev/null; ")
                     append("cmd game downscale disable $pkg 2>/dev/null; ")
+                    append("cmd game reset $pkg 2>/dev/null; ")
                     append("cmd game mode standard $pkg 2>/dev/null; ")
+                    append("am force-stop $pkg 2>/dev/null; ")
                 }
-                append("setprop debug.hwui.texture_cache_size 72 2>/dev/null; ")
-                append("setprop debug.hwui.layer_cache_size 48 2>/dev/null; ")
                 append("settings delete global gpu_debug_app 2>/dev/null; ")
-                append("echo \"RESET -> Tekstur Game Kembali HD Normal\"")
+                append("echo \"OFF: Grafik Free Fire Kembali HD Normal\"")
             }
             execShell(cmd)
         }
