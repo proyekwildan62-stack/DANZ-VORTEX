@@ -65,7 +65,6 @@ class CustomCrosshairView(context: Context) : View(context) {
     var sizePx: Float = 36f
     var strokeWidthPx: Float = 4f
     var alphaVal: Int = 255
-
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     override fun onDraw(canvas: Canvas) {
@@ -73,7 +72,6 @@ class CustomCrosshairView(context: Context) : View(context) {
         val cx = width / 2f
         val cy = height / 2f
         val half = sizePx / 2f
-
         paint.color = crosshairColor
         paint.alpha = alphaVal
         paint.strokeWidth = strokeWidthPx
@@ -128,12 +126,10 @@ class CustomCrosshairView(context: Context) : View(context) {
 object FloatingOverlayController {
     private var crosshairView: CustomCrosshairView? = null
     private var crosshairParams: WindowManager.LayoutParams? = null
-
     private var monitorLayout: LinearLayout? = null
     private var monitorTextView: TextView? = null
     private var monitorParams: WindowManager.LayoutParams? = null
     private var fpsRunning = false
-
     private var touchBoostView: View? = null
 
     var currentStyle = 0
@@ -159,8 +155,7 @@ object FloatingOverlayController {
             if (touchBoostView != null) return
             val v = View(appCtx)
             val params = WindowManager.LayoutParams(
-                1,
-                1,
+                1, 1,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -207,8 +202,7 @@ object FloatingOverlayController {
                 strokeWidthPx = currentStroke
             }
             val params = WindowManager.LayoutParams(
-                180,
-                180,
+                180, 180,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -237,13 +231,11 @@ object FloatingOverlayController {
         val view = crosshairView ?: return
         val params = crosshairParams ?: return
         val wm = context.applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-
         view.styleIndex = currentStyle
         view.crosshairColor = currentColor
         view.sizePx = currentSize
         view.strokeWidthPx = currentStroke
         view.invalidate()
-
         params.x = currentOffsetX
         params.y = currentOffsetY
         wm.updateViewLayout(view, params)
@@ -379,31 +371,21 @@ object FloatingOverlayController {
 }
 
 class MainActivity : ComponentActivity() {
-
     private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
-            Thread {
-                VortexShellEngine.bindAndGrantPermissions(applicationContext)
-            }.start()
-            Toast.makeText(this, "Shizuku UID 2000 Terhubung Penuh!", Toast.LENGTH_LONG).show()
+            Thread { VortexShellEngine.bindAndGrantPermissions(applicationContext) }.start()
+            Toast.makeText(this, "Shizuku UID 2000 Terhubung!", Toast.LENGTH_LONG).show()
         } else {
-            Toast.makeText(this, "Izin Shizuku ditolak! Klik Izinkan agar fitur aktif.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Izin Shizuku ditolak!", Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        try {
-            Shizuku.addRequestPermissionResultListener(permissionResultListener)
-        } catch (_: Exception) {}
-
+        try { Shizuku.addRequestPermissionResultListener(permissionResultListener) } catch (_: Exception) {}
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
-                    background = BgDark,
-                    surface = CardDark,
-                    primary = CrimsonRed
-                )
+                colorScheme = darkColorScheme(background = BgDark, surface = CardDark, primary = CrimsonRed)
             ) {
                 DanzVortexApp()
             }
@@ -412,9 +394,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            Shizuku.removeRequestPermissionResultListener(permissionResultListener)
-        } catch (_: Exception) {}
+        try { Shizuku.removeRequestPermissionResultListener(permissionResultListener) } catch (_: Exception) {}
     }
 }
 
@@ -425,10 +405,7 @@ fun DanzVortexApp() {
     val myHwid = remember { LicenseEngine.getDeviceHwid(context) }
 
     if (currentRole == null) {
-        LicenseLoginScreen(
-            hwid = myHwid,
-            onSuccess = { currentRole = LicenseEngine.getSavedRole(context) }
-        )
+        LicenseLoginScreen(hwid = myHwid, onSuccess = { currentRole = LicenseEngine.getSavedRole(context) })
     } else {
         MainDashboard(
             role = currentRole!!,
@@ -447,17 +424,10 @@ fun LicenseLoginScreen(hwid: String, onSuccess: () -> Unit) {
     var inputKey by remember { mutableStateOf("") }
     var statusMsg by remember { mutableStateOf("Masukkan Lisensi 1 Key 1 Device atau Key Developer") }
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(BgDark).padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(BgDark).padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(CardDark)
-                .border(1.dp, CrimsonRed, RoundedCornerShape(16.dp))
-                .padding(24.dp),
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
+                .border(1.dp, CrimsonRed, RoundedCornerShape(16.dp)).padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("DANZVORTEX", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
@@ -465,11 +435,7 @@ fun LicenseLoginScreen(hwid: String, onSuccess: () -> Unit) {
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF221010))
-                    .padding(12.dp),
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFF221010)).padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -531,9 +497,7 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
     LaunchedEffect(Unit) {
         delay(300)
         if (VortexShellEngine.isShizukuAvailable()) {
-            val res = withContext(Dispatchers.IO) {
-                VortexShellEngine.bindAndGrantPermissions(context)
-            }
+            val res = withContext(Dispatchers.IO) { VortexShellEngine.bindAndGrantPermissions(context) }
             liveShellOutput = res
         }
     }
@@ -552,11 +516,7 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
         containerColor = BgDark,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {
-                    executeRealCommand {
-                        VortexShellEngine.bindAndGrantPermissions(context)
-                    }
-                },
+                onClick = { executeRealCommand { VortexShellEngine.bindAndGrantPermissions(context) } },
                 containerColor = CrimsonRed,
                 shape = RoundedCornerShape(14.dp)
             ) {
@@ -565,13 +525,9 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
         },
         bottomBar = {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 14.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF140909))
-                    .border(1.dp, CardBorder, RoundedCornerShape(20.dp))
-                    .padding(vertical = 8.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp)
+                    .clip(RoundedCornerShape(20.dp)).background(Color(0xFF140909))
+                    .border(1.dp, CardBorder, RoundedCornerShape(20.dp)).padding(vertical = 8.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -599,34 +555,27 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
                             text = when (currentTab) {
                                 0 -> "Home"
                                 1 -> "Main Menu"
-                                2 -> "Vortex Cheat"
+                                2 -> "Vortex XIT"
                                 else -> "Key Manager"
                             },
-                            color = Color.White,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = when (currentTab) {
-                                0 -> "Hybrid ANGLE & Grafik MC Engine"
-                                1 -> "Zero-Overshoot Slickness & Visual"
-                                2 -> "High Features (Nempel Kepala)"
+                                0 -> "Direct XIT Data Injector & Grafik MC"
+                                1 -> "Chest-Breaker Slickness & Visual"
+                                2 -> "High Features (100% KEPALA / BADAN 0)"
                                 else -> "1 Key 1 Device & Reseller Panel"
                             },
-                            color = CrimsonRed,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
+                            color = CrimsonRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("By Danz", color = TextGray, fontSize = 12.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF2B1010))
-                                .border(1.dp, CrimsonRed, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF2B1010))
+                                .border(1.dp, CrimsonRed, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text("VIP", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
@@ -635,19 +584,12 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF140707))
-                        .border(1.dp, CardBorder, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFF140707))
+                        .border(1.dp, CardBorder, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "SHELL LOG: $liveShellOutput",
-                        color = Color(0xFF00E676),
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 1
+                        color = Color(0xFF00E676), fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 1
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -661,15 +603,9 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
             }
 
             if (isProcessing) {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(Color(0x77000000)),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize().background(Color(0x77000000)), contentAlignment = Alignment.Center) {
                     Box(
-                        modifier = Modifier
-                            .size(92.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF1F0808))
+                        modifier = Modifier.size(92.dp).clip(CircleShape).background(Color(0xFF1F0808))
                             .border(3.dp, CrimsonRed, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -684,11 +620,9 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
 @Composable
 fun BottomNavChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+        modifier = Modifier.clip(RoundedCornerShape(12.dp))
             .background(if (selected) Color(0xFF2B1212) else Color.Transparent)
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .clickable { onClick() }.padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = label, tint = if (selected) CrimsonRed else TextGray, modifier = Modifier.size(20.dp))
@@ -702,6 +636,7 @@ fun BottomNavChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: 
 @Composable
 fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     val prefs = remember { context.getSharedPreferences("danz_toggles", Context.MODE_PRIVATE) }
+    var xitInjected by remember { mutableStateOf(prefs.getBoolean("xitInjected", false)) }
     var tacticalRec by remember { mutableStateOf(prefs.getBoolean("tacticalRec", false)) }
     var rogSpace by remember { mutableStateOf(prefs.getBoolean("rogSpace", false)) }
     var selectedMinecraftPreset by remember { mutableStateOf(prefs.getInt("mcPreset", 3)) }
@@ -710,66 +645,81 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     val detectedFF = remember { VortexShellEngine.getInstalledFFPackage(context) }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // PANEL INJECT XIT DATA PERSIS VIDEO (TANPA FLOATING PANEL!)
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(CardDark)
-                    .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
+                    .border(1.5.dp, CrimsonRed, RoundedCornerShape(16.dp)).padding(16.dp)
+            ) {
+                Text("DANZVORTEX XIT DATA INJECTOR (NO FLOATING)", color = CrimsonRed, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (xitInjected) "● STATUS: 100% XIT DATA INJECTED ($detectedFF)" else "● STATUS: READY TO INJECT ($detectedFF)",
+                    color = if (xitInjected) Color(0xFF00E676) else TextGray,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        xitInjected = true
+                        prefs.edit().putBoolean("xitInjected", true).apply()
+                        onRun { VortexShellEngine.injectXitData(context, true) }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("INJECT XIT DATA (KEPALA 100% / BADAN 0)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        xitInjected = false
+                        prefs.edit().putBoolean("xitInjected", false).apply()
+                        onRun { VortexShellEngine.injectXitData(context, false) }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("RESTORE DATA (NORMAL)", color = TextGray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
+        }
+
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
+                    .border(1.dp, CardBorder, RoundedCornerShape(16.dp)).padding(16.dp)
             ) {
                 Text("Environment", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1F0E0E)).padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.Android, contentDescription = null, tint = Color(0xFF3DDC84), modifier = Modifier.size(42.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Android ${Build.VERSION.RELEASE}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1F0E0E)).padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.Memory, contentDescription = null, tint = CrimsonRed, modifier = Modifier.size(42.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(Build.HARDWARE.uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                EnvRow("Target Game Detected", detectedFF)
-                Spacer(modifier = Modifier.height(8.dp))
-                EnvRow("Head-Magnet Engine", "LSQ1 Linear + Big Core Lock")
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+                EnvRow("Target Game", detectedFF)
+                Spacer(modifier = Modifier.height(6.dp))
                 EnvRow("Shizuku UID 2000", if (shizukuGranted) "GRANTED (100% WORK)" else "NOT BOUND (TAP >_)")
+                Spacer(modifier = Modifier.height(6.dp))
+                EnvRow("Resolution Mode", "100% Native Sharp (Zero Downscale)")
             }
         }
 
         item {
             ToggleFeatureCard(
-                title = "Precision Head-Brake Slickness (Anti-Lewat Kepala)",
-                subtitle = "Melicinkan tarikan awal namun langsung mengerem tepat di hitbox kepala (Zero Overshoot).",
+                title = "Chest-Breaker Slickness (Anti-Nempel Badan)",
+                subtitle = "Memberikan daya angkat vertikal (MinFling 580) agar tembakan langsung lepas dari dada & naik ke kepala.",
                 checked = tacticalRec,
                 onCheckedChange = {
                     tacticalRec = it
                     prefs.edit().putBoolean("tacticalRec", it).apply()
-                    onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "HeadBrakeSlick") }
+                    onRun { VortexShellEngine.setDragHsSensitivity(context, it, 7) }
                 }
             )
         }
 
-        // GAME SPACE GRAFIK MINECRAFT V6 (SINGLE-PACKAGE ANGLE + 3D WORLD PIXEL BLOCK)
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(CardDark)
-                    .border(1.dp, if (rogSpace) CrimsonRed else CardBorder, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
+                    .border(1.dp, if (rogSpace) CrimsonRed else CardBorder, RoundedCornerShape(16.dp)).padding(16.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -777,13 +727,11 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text("Danz Game Space (Grafik MC All-Device V6)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Text("Danz Game Space (Tekstur Balok Zero-Downscale)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Mengubah tekstur 3D Free Fire menjadi kotak-kotak/polos ala Minecraft (Ukuran layar HP & tombol HUD tetap 100% normal).",
-                            color = TextGray,
-                            fontSize = 11.sp,
-                            lineHeight = 15.sp
+                            "100% TANPA DOWNSCALE! Otomatis menghapus layar buram & mengunci ANGLE + Mipmap Cache 0MB pada balok Free Fire.",
+                            color = TextGray, fontSize = 11.sp, lineHeight = 15.sp
                         )
                     }
                     Switch(
@@ -791,46 +739,30 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         onCheckedChange = {
                             rogSpace = it
                             prefs.edit().putBoolean("rogSpace", it).apply()
-                            onRun {
-                                VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) selectedMinecraftPreset else 0)
-                            }
+                            onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) selectedMinecraftPreset else 0) }
                         },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = CrimsonRed,
-                            uncheckedThumbColor = TextGray,
-                            uncheckedTrackColor = Color(0xFF2A1515)
-                        )
+                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CrimsonRed)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Pilih Mesin Grafik MC (Support Semua HP):", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-
+                Spacer(modifier = Modifier.height(10.dp))
                 val presets = listOf(
-                    Triple(1, "Mode 1: Preferensi ANGLE + Medium MC", "Single-Package ANGLE Driver + 0.50 3D World Block"),
-                    Triple(2, "Mode 2: Tanpa Preferensi ANGLE (All Device)", "3D World Pixel Block 0.35 + Shader Strip (HUD Tetap Tajam)"),
-                    Triple(3, "Mode 3: HYBRID EXTREME MC (Persis Foto)", "ANGLE Global ON + 0.25 3D Pixel Block + Zero Texture Cache")
+                    Triple(1, "Mode 1: ROG / PC Pure Native (No Downscale)", "Hapus Blur Downscale + SkiaGL 120FPS"),
+                    Triple(2, "Mode 2: ANGLE Driver Blocky (No Downscale)", "Single-Package ANGLE Driver + Lock UnityShaderCache"),
+                    Triple(3, "Mode 3: Full Flat Blocky + Zero Mipmap (No Downscale)", "ANGLE + Texture Pool 0MB (Tampilan 100% Tajam)")
                 )
 
                 presets.forEach { (modeId, title, desc) ->
                     val isSelected = selectedMinecraftPreset == modeId
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(10.dp))
                             .background(if (isSelected) Color(0xFF2B1010) else Color(0xFF140808))
                             .border(1.dp, if (isSelected) CrimsonRed else CardBorder, RoundedCornerShape(10.dp))
                             .clickable {
                                 selectedMinecraftPreset = modeId
                                 prefs.edit().putInt("mcPreset", modeId).apply()
-                                if (rogSpace) {
-                                    onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
-                                }
-                            }
-                            .padding(12.dp),
+                                if (rogSpace) onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
+                            }.padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -843,9 +775,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             onClick = {
                                 selectedMinecraftPreset = modeId
                                 prefs.edit().putInt("mcPreset", modeId).apply()
-                                if (rogSpace) {
-                                    onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
-                                }
+                                if (rogSpace) onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
                             },
                             colors = RadioButtonDefaults.colors(selectedColor = CrimsonRed, unselectedColor = TextGray)
                         )
@@ -855,55 +785,32 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
         }
 
         item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(CardDark)
-                    .border(1.dp, CrimsonRed, RoundedCornerShape(14.dp))
-                    .padding(16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier.size(46.dp).clip(RoundedCornerShape(10.dp)).background(CrimsonRed),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.SportsEsports, contentDescription = null, tint = Color.White)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("Free Fire System Injector & Launcher", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Wajib buka FF dari tombol ini agar Grafik MC & Lock Kepala aktif", color = TextGray, fontSize = 12.sp)
-                    }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = {
+                        onRun {
+                            if (xitInjected) VortexShellEngine.injectXitData(context, true)
+                            VortexShellEngine.launchFreeFire(context, preferMax = false)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("BUKA FREE FIRE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = {
-                            onRun {
-                                if (rogSpace) VortexShellEngine.setRogMinecraftTextureOnly(context, selectedMinecraftPreset)
-                                VortexShellEngine.launchFreeFire(context, preferMax = false)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("BUKA FREE FIRE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                    Button(
-                        onClick = {
-                            onRun {
-                                if (rogSpace) VortexShellEngine.setRogMinecraftTextureOnly(context, selectedMinecraftPreset)
-                                VortexShellEngine.launchFreeFire(context, preferMax = true)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF331212)),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("BUKA FF MAX", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
+                Button(
+                    onClick = {
+                        onRun {
+                            if (xitInjected) VortexShellEngine.injectXitData(context, true)
+                            VortexShellEngine.launchFreeFire(context, preferMax = true)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF331212)),
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("BUKA FF MAX", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }
@@ -913,10 +820,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 @Composable
 fun EnvRow(label: String, value: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF1F0E0E))
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color(0xFF1F0E0E))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -936,7 +840,6 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     var motionResp by remember { mutableStateOf(prefs.getBoolean("motionResp", false)) }
     var sensAdjust by remember { mutableStateOf(prefs.getBoolean("sensAdjust", false)) }
     var fpsBooster by remember { mutableStateOf(prefs.getBoolean("fpsBooster", false)) }
-    var hyperTouch by remember { mutableStateOf(prefs.getBoolean("hyperTouch", false)) }
 
     var crosshairAim by remember { mutableStateOf(FloatingOverlayController.isCrosshairActive()) }
     var chStyle by remember { mutableStateOf(FloatingOverlayController.currentStyle) }
@@ -952,14 +855,12 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Configs & Head-Brake", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
+            listOf("Pelicin Anti-Badan", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
                         .background(if (subTab == idx) CrimsonRed else CardDark)
                         .border(1.dp, if (subTab == idx) CrimsonRed else CardBorder, RoundedCornerShape(8.dp))
-                        .clickable { subTab = idx }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .clickable { subTab = idx }.padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Text(title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
@@ -971,20 +872,20 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     ToggleFeatureCard(
-                        title = "Linear LSQ1 Touch Matrix (Anti-Mental Kepala)",
-                        subtitle = "Mematikan extrapolasi sentuhan Android agar saat jari berhenti, bidikan langsung berhenti di kepala.",
+                        title = "Impulse Chest-Breaker Matrix (Jebol Magnet Badan)",
+                        subtitle = "Memberikan hentakan awal (MinFling 580) agar bidikan langsung lepas dari dada dan naik ke kepala.",
                         checked = sensGameLab,
                         onCheckedChange = {
                             sensGameLab = it
                             prefs.edit().putBoolean("sensGameLab", it).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "LSQ1Matrix") }
+                            onRun { VortexShellEngine.injectXitData(context, it) }
                         }
                     )
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Dynamic Drag Sensitivity",
-                        subtitle = "Memangkas jeda sentuhan (long_press_timeout 70ms) & mematikan Palm Rejection.",
+                        title = "Dynamic Drag Sensitivity (55ms Instant)",
+                        subtitle = "Memangkas jeda sentuhan ke 55ms & mematikan Palm Rejection.",
                         checked = dynSens,
                         onCheckedChange = {
                             dynSens = it
@@ -995,19 +896,11 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(CardDark)
-                            .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
-                            .padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(CardDark)
+                            .border(1.dp, CardBorder, RoundedCornerShape(14.dp)).padding(16.dp)
                     ) {
-                        Text("Level Kelicinan Layar (1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text(
-                            "Mengatur kecepatan angkatan awal drag tanpa mengubah DPI/Ukuran Layar HP.",
-                            color = TextGray,
-                            fontSize = 12.sp
-                        )
+                        Text("Level Kelicinan Tarikan (1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Geser ke LEV.7 untuk daya angkat maksimal ke kepala tanpa ubah DPI layar.", color = TextGray, fontSize = 12.sp)
                         Slider(
                             value = sensLevel,
                             onValueChange = { sensLevel = it },
@@ -1019,11 +912,6 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             steps = 5,
                             colors = SliderDefaults.colors(thumbColor = CrimsonRed, activeTrackColor = CrimsonRed)
                         )
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            (1..7).forEach { lv ->
-                                Text("LEV.$lv", color = if (sensLevel.toInt() == lv) CrimsonRed else TextGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
                     }
                 }
                 item {
@@ -1040,8 +928,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Sensitivity Adjust (Zero Resampling Lag)",
-                        subtitle = "Mematikan ro.input.resampling agar posisi crosshair 1:1 dengan gerakan jempol.",
+                        title = "Zero Resampling Lag (1:1 Touch Sync)",
+                        subtitle = "Mematikan ro.input.resampling agar titik tembak 1:1 dengan sentakan jempol.",
                         checked = sensAdjust,
                         onCheckedChange = {
                             sensAdjust = it
@@ -1052,8 +940,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "FPS Booster (Hybrid Grafik MC V6)",
-                        subtitle = "Mengaktifkan Hybrid ANGLE + 3D World Pixel Block 0.25 untuk FPS maksimal.",
+                        title = "FPS Booster (Zero-Downscale Blocky Mode)",
+                        subtitle = "Mengosongkan Texture Cache GPU tanpa membuat layar buram.",
                         checked = fpsBooster,
                         onCheckedChange = {
                             fpsBooster = it
@@ -1062,29 +950,13 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         }
                     )
                 }
-                item {
-                    ToggleFeatureCard(
-                        title = "Hyper Touch Response 300Hz",
-                        subtitle = "Meningkatkan pembacaan sampel sentuhan ke 300 events/detik yang stabil.",
-                        checked = hyperTouch,
-                        onCheckedChange = {
-                            hyperTouch = it
-                            prefs.edit().putBoolean("hyperTouch", it).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "HyperTouch300") }
-                        }
-                    )
-                }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(CardDark)
-                            .border(1.dp, if (perfMonitor) CrimsonRed else CardBorder, RoundedCornerShape(16.dp))
-                            .padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
+                            .border(1.dp, if (perfMonitor) CrimsonRed else CardBorder, RoundedCornerShape(16.dp)).padding(16.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1104,8 +976,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CrimsonRed)
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1122,7 +993,6 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CrimsonRed)
                             )
                         }
-
                         Text("Ukuran Teks Monitor (${monitorFontSize.toInt()} sp):", color = Color.White, fontSize = 12.sp)
                         Slider(
                             value = monitorFontSize,
@@ -1139,12 +1009,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
                 item {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(CardDark)
-                            .border(1.dp, if (crosshairAim) CrimsonRed else CardBorder, RoundedCornerShape(16.dp))
-                            .padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
+                            .border(1.dp, if (crosshairAim) CrimsonRed else CardBorder, RoundedCornerShape(16.dp)).padding(16.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1165,34 +1031,24 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("1. Pilih Bentuk Crosshair:", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-
+                        Spacer(modifier = Modifier.height(10.dp))
                         val styles = listOf(
-                            Pair(0, "╋ Plus Gap"),
-                            Pair(1, "⊕ Circle Dot"),
-                            Pair(2, "◉ Pure Dot"),
-                            Pair(3, "✕ Hitmark X"),
-                            Pair(4, "[+] Box Aim"),
-                            Pair(5, "┳ Pro T-Aim")
+                            Pair(0, "╋ Plus"), Pair(1, "⊕ Circle"), Pair(2, "◉ Dot"),
+                            Pair(3, "✕ Hit X"), Pair(4, "[+] Box"), Pair(5, "┳ Pro T")
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             styles.chunked(3).forEach { rowStyles ->
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     rowStyles.forEach { (sIdx, sLabel) ->
                                         Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clip(RoundedCornerShape(8.dp))
+                                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
                                                 .background(if (chStyle == sIdx) CrimsonRed else Color(0xFF241010))
                                                 .border(1.dp, CrimsonRed, RoundedCornerShape(8.dp))
                                                 .clickable {
                                                     chStyle = sIdx
                                                     FloatingOverlayController.currentStyle = sIdx
                                                     FloatingOverlayController.updateCrosshairConfig(context)
-                                                }
-                                                .padding(vertical = 10.dp),
+                                                }.padding(vertical = 8.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(sLabel, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -1202,10 +1058,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("2. Pilih Warna Crosshair:", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-
+                        Spacer(modifier = Modifier.height(10.dp))
                         val colorOptions = listOf(
                             Pair(android.graphics.Color.RED, Color.Red),
                             Pair(android.graphics.Color.GREEN, Color(0xFF00E676)),
@@ -1217,15 +1070,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                             colorOptions.forEach { (androidCol, composeCol) ->
                                 Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(composeCol)
-                                        .border(
-                                            width = if (chColor == androidCol) 3.dp else 1.dp,
-                                            color = if (chColor == androidCol) Color.White else Color.Black,
-                                            shape = CircleShape
-                                        )
+                                    modifier = Modifier.size(32.dp).clip(CircleShape).background(composeCol)
+                                        .border(if (chColor == androidCol) 3.dp else 1.dp, Color.White, CircleShape)
                                         .clickable {
                                             chColor = androidCol
                                             FloatingOverlayController.currentColor = androidCol
@@ -1235,8 +1081,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("3. Ukuran Crosshair (${chSize.toInt()} px):", color = Color.White, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text("Ukuran (${chSize.toInt()}px) & Garis (${chStroke.toInt()}px):", color = Color.White, fontSize = 12.sp)
                         Slider(
                             value = chSize,
                             onValueChange = {
@@ -1247,8 +1093,6 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             valueRange = 14f..100f,
                             colors = SliderDefaults.colors(thumbColor = CrimsonRed, activeTrackColor = CrimsonRed)
                         )
-
-                        Text("4. Ketebalan Garis (${chStroke.toInt()} px):", color = Color.White, fontSize = 12.sp)
                         Slider(
                             value = chStroke,
                             onValueChange = {
@@ -1259,8 +1103,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                             valueRange = 1.5f..12f,
                             colors = SliderDefaults.colors(thumbColor = CrimsonRed, activeTrackColor = CrimsonRed)
                         )
-
-                        Text("5. Geser Posisi X (${chOffsetX.toInt()}) & Y (${chOffsetY.toInt()}):", color = Color.White, fontSize = 12.sp)
+                        Text("Posisi X (${chOffsetX.toInt()}) & Y (${chOffsetY.toInt()}):", color = Color.White, fontSize = 12.sp)
                         Slider(
                             value = chOffsetX,
                             onValueChange = {
@@ -1294,14 +1137,14 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     val vortexFeatures = remember {
         mutableStateListOf(
-            Triple("DRAG HS (CHEAT) [NEMPEL PALA]", "Injeksi LSQ1 Linear Velocity + Rem Kepala (MaxFling 3800) agar sekali tarik langsung berhenti tepat di kepala.", prefs.getBoolean("vf_0", false)),
-            Triple("AIMLOCK (CHEAT) [MAGNET HITBOX]", "Mematikan Touch Resampling & mengunci UnityMain ke Big CPU Cores agar Red-Dot Aim Assist lengket di kepala.", prefs.getBoolean("vf_1", false)),
-            Triple("Headtick 95% [LOCK HEAD]", "Meningkatkan akurasi recoil dan mengunci pengereman vertikal di area kepala (Safe No Root).", prefs.getBoolean("vf_2", false)),
-            Triple("AimDrag [ZERO OVERSHOOT PACK]", "Paket lengkap LSQ1 Linear + 70ms tap delay + Scroll Friction 0.035 agar peluru tidak lewat di atas kepala.", prefs.getBoolean("vf_3", false)),
+            Triple("DRAG HS (CHEAT) [XIT BADAN: 0]", "Injeksi XIT Y-Axis Multiplier 2.85 + MinFling 580 agar tembakan langsung melompat dari dada ke kepala.", prefs.getBoolean("vf_0", false)),
+            Triple("AIMLOCK (CHEAT) [NEMPEL PALA]", "Mengunci ChestMagnetOverride = 0.0 & HeadLockFactor = 1.0 langsung ke folder config Free Fire.", prefs.getBoolean("vf_1", false)),
+            Triple("Headtick 99% [XIT INJECT]", "Meningkatkan akurasi recoil dan mengunci pengereman vertikal di area kepala (Safe No Root).", prefs.getBoolean("vf_2", false)),
+            Triple("AimDrag [CHEST-BREAKER PACK]", "Paket lengkap XIT Data + 55ms tap delay + Scroll Friction 0.004 agar tidak nyangkut di badan.", prefs.getBoolean("vf_3", false)),
             Triple("Controller Recoil [NO SHAKE]", "Menstabilkan getaran input sentuhan beruntun agar peluru lurus di satu titik kepala.", prefs.getBoolean("vf_4", false)),
             Triple("Aim Tracking 95%", "Kalibrasi respons sentuhan 1:1 untuk mengikuti musuh lari tanpa jeda.", prefs.getBoolean("vf_5", false)),
-            Triple("Stabilizer Head [SG2 / M1887]", "Khusus SG2 / M1887 di Training & Clash Squad: menahan lonjakan akhir drag agar nempel di kepala.", prefs.getBoolean("vf_6", false)),
-            Triple("Headlock VIP [FIXED PERFORMANCE]", "Aktifkan Android Fixed Performance Mode + chrt 99 Real-Time pada proses Free Fire.", prefs.getBoolean("vf_7", false))
+            Triple("Stabilizer Head [SG2 / UMP / M1887]", "Khusus SG2 & SMG di Training Ground: memutus magnet dada dan mengunci red-dot di kepala.", prefs.getBoolean("vf_6", false)),
+            Triple("Headlock VIP [FIFO REALTIME 99]", "Aktifkan Android Fixed Performance Mode + chrt 99 Real-Time pada proses Free Fire.", prefs.getBoolean("vf_7", false))
         )
     }
 
@@ -1309,16 +1152,9 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
         items(vortexFeatures.size) { idx ->
             val item = vortexFeatures[idx]
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(Color(0xFF1A0909), Color(0xFF330A0A), Color(0xFF120606))
-                        )
-                    )
-                    .border(1.5.dp, if (item.third) CrimsonRed else CardBorder, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFF1A0909), Color(0xFF330A0A), Color(0xFF120606))))
+                    .border(1.5.dp, if (item.third) CrimsonRed else CardBorder, RoundedCornerShape(16.dp)).padding(16.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1335,17 +1171,9 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         onCheckedChange = { checked ->
                             vortexFeatures[idx] = item.copy(third = checked)
                             prefs.edit().putBoolean("vf_$idx", checked).apply()
-                            onRun {
-                                VortexShellEngine.setDragHsSensitivity(context, checked, 7)
-                                VortexShellEngine.setHeadLockCheatEngine(context, checked, item.first.take(18))
-                            }
+                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, checked, item.first.take(18)) }
                         },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = CrimsonRed,
-                            uncheckedThumbColor = TextGray,
-                            uncheckedTrackColor = Color(0xFF2A1515)
-                        )
+                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CrimsonRed)
                     )
                 }
             }
@@ -1361,23 +1189,15 @@ fun AdminKeyTabScreen(role: String, myHwid: String, onLogout: () -> Unit) {
     var generatedKey by remember { mutableStateOf("") }
 
     val durations = listOf(
-        Pair("1 DAY", 1),
-        Pair("3 DAY", 3),
-        Pair("7 DAY", 7),
-        Pair("15 DAY", 15),
-        Pair("30 DAY", 30),
-        Pair("PERMANENT", 9999)
+        Pair("1 DAY", 1), Pair("3 DAY", 3), Pair("7 DAY", 7),
+        Pair("15 DAY", 15), Pair("30 DAY", 30), Pair("PERMANENT", 9999)
     )
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(CardDark)
-                    .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(CardDark)
+                    .border(1.dp, CardBorder, RoundedCornerShape(14.dp)).padding(16.dp)
             ) {
                 Text("Status Lisensi & Shizuku ADB", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1401,12 +1221,8 @@ fun AdminKeyTabScreen(role: String, myHwid: String, onLogout: () -> Unit) {
         if (role == "DEVELOPER" || role == "RESELLER") {
             item {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(CardDark)
-                        .border(1.dp, CrimsonRed, RoundedCornerShape(14.dp))
-                        .padding(16.dp)
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(CardDark)
+                        .border(1.dp, CrimsonRed, RoundedCornerShape(14.dp)).padding(16.dp)
                 ) {
                     Text("PANEL DEVELOPER / RESELLER KEY GENERATOR", color = CrimsonRed, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                     Text("Sistem 1 Key 1 Device — Masukkan HWID pembeli lalu pilih durasi hari.", color = TextGray, fontSize = 12.sp)
@@ -1427,21 +1243,15 @@ fun AdminKeyTabScreen(role: String, myHwid: String, onLogout: () -> Unit) {
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Pilih Durasi Key:", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         durations.chunked(3).forEach { rowItems ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 rowItems.forEach { (label, days) ->
                                     Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(8.dp))
+                                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
                                             .background(if (selectedDays == days) CrimsonRed else Color(0xFF241010))
                                             .border(1.dp, CrimsonRed, RoundedCornerShape(8.dp))
-                                            .clickable { selectedDays = days }
-                                            .padding(vertical = 10.dp),
+                                            .clickable { selectedDays = days }.padding(vertical = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -1469,11 +1279,8 @@ fun AdminKeyTabScreen(role: String, myHwid: String, onLogout: () -> Unit) {
                     if (generatedKey.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF241010))
-                                .padding(12.dp),
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF241010)).padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1496,12 +1303,8 @@ fun AdminKeyTabScreen(role: String, myHwid: String, onLogout: () -> Unit) {
 @Composable
 fun ToggleFeatureCard(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardDark)
-            .border(1.dp, if (checked) CrimsonRed else CardBorder, RoundedCornerShape(14.dp))
-            .padding(16.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(CardDark)
+            .border(1.dp, if (checked) CrimsonRed else CardBorder, RoundedCornerShape(14.dp)).padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
