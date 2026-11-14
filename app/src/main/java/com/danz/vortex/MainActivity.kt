@@ -458,6 +458,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     val prefs = remember { context.getSharedPreferences("danz_toggles", Context.MODE_PRIVATE) }
     var tacticalRec by remember { mutableStateOf(prefs.getBoolean("tacticalRec", false)) }
     var rogSpace by remember { mutableStateOf(prefs.getBoolean("rogSpace", false)) }
+    var selectedMinecraftPreset by remember { mutableStateOf(prefs.getInt("mcPreset", 2)) }
     val shizukuGranted = VortexShellEngine.hasShizukuPermission()
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -512,17 +513,97 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
             )
         }
 
+        // FITUR GAME SPACE + SUB-MENU TEKSTUR ROG/PC GRAFIK MINECRAFT
         item {
-            ToggleFeatureCard(
-                title = "Danz Space (ROG / PC Graphic Light)",
-                subtitle = "Game Space Grafik Ringan ROG/PC + Hardware Game Mode Performance + Kill Background RAM.",
-                checked = rogSpace,
-                onCheckedChange = {
-                    rogSpace = it
-                    prefs.edit().putBoolean("rogSpace", it).apply()
-                    onRun { VortexShellEngine.setRogPcGameSpace(context, it) }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CardDark)
+                    .border(1.dp, if (rogSpace) CrimsonRed else CardBorder, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text("Danz Game Space (ROG / PC / Minecraft)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Ubah tekstur dalam game jadi ringan ala ROG/PC & Grafik Kotak-Kotak Minecraft (120 FPS) tanpa mengecilkan layar HP.",
+                            color = TextGray,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
+                    }
+                    Switch(
+                        checked = rogSpace,
+                        onCheckedChange = {
+                            rogSpace = it
+                            prefs.edit().putBoolean("rogSpace", it).apply()
+                            onRun {
+                                VortexShellEngine.setRogMinecraftGameSpace(if (it) selectedMinecraftPreset else 0)
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = CrimsonRed,
+                            uncheckedThumbColor = TextGray,
+                            uncheckedTrackColor = Color(0xFF2A1515)
+                        )
+                    )
                 }
-            )
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Pilih Preset Tekstur Game Space:", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val presets = listOf(
+                    Triple(1, "ROG / PC Competitive Smooth", "Buffer 0.75 + SkiaGL 120FPS (Tajam & Enteng)"),
+                    Triple(2, "Tekstur Minecraft V1 (Semi-Kotak)", "Buffer 0.45 + No MSAA (Grafik Kotak Ringan)"),
+                    Triple(3, "Tekstur Minecraft V2 (Super Blocky)", "Buffer 0.30 + Low LOD Pixel (Grafik Minecraft Parah)")
+                )
+
+                presets.forEach { (modeId, title, desc) ->
+                    val isSelected = selectedMinecraftPreset == modeId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) Color(0xFF2B1010) else Color(0xFF140808))
+                            .border(1.dp, if (isSelected) CrimsonRed else CardBorder, RoundedCornerShape(10.dp))
+                            .clickable {
+                                selectedMinecraftPreset = modeId
+                                prefs.edit().putInt("mcPreset", modeId).apply()
+                                if (rogSpace) {
+                                    onRun { VortexShellEngine.setRogMinecraftGameSpace(modeId) }
+                                }
+                            }
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(desc, color = TextGray, fontSize = 11.sp)
+                        }
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = {
+                                selectedMinecraftPreset = modeId
+                                prefs.edit().putInt("mcPreset", modeId).apply()
+                                if (rogSpace) {
+                                    onRun { VortexShellEngine.setRogMinecraftGameSpace(modeId) }
+                                }
+                            },
+                            colors = RadioButtonDefaults.colors(selectedColor = CrimsonRed, unselectedColor = TextGray)
+                        )
+                    }
+                }
+            }
         }
 
         item {
@@ -533,7 +614,8 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     .background(CardDark)
                     .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
                     .clickable {
-                        onRun { VortexShellEngine.setRogPcGameSpace(context, true) }
+                        val activeMode = if (rogSpace) selectedMinecraftPreset else 2
+                        onRun { VortexShellEngine.setRogMinecraftGameSpace(activeMode) }
                         val launchIntent = context.packageManager.getLaunchIntentForPackage("com.dts.freefireth")
                             ?: context.packageManager.getLaunchIntentForPackage("com.dts.freefiremax")
                         if (launchIntent != null) {
@@ -554,7 +636,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 Spacer(modifier = Modifier.width(14.dp))
                 Column {
                     Text("Free Fire (Tap to Inject & Launch)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("Otomatis menerapkan ROG Game Mode & membuka Free Fire", color = TextGray, fontSize = 12.sp)
+                    Text("Terapkan Tekstur Game Space & langsung buka Free Fire", color = TextGray, fontSize = 12.sp)
                 }
             }
         }
@@ -695,13 +777,13 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "FPS Booster (Game Overlay Downscale 0.85)",
-                        subtitle = "Meringankan beban GPU di dalam Free Fire tanpa mengecilkan ukuran layar HP.",
+                        title = "FPS Booster (Minecraft Texture Mode)",
+                        subtitle = "Meringankan beban GPU di dalam Free Fire dengan tekstur blok ringan tanpa mengecilkan ukuran layar HP.",
                         checked = fpsBooster,
                         onCheckedChange = {
                             fpsBooster = it
                             prefs.edit().putBoolean("fpsBooster", it).apply()
-                            onRun { VortexShellEngine.setRogPcGameSpace(context, it) }
+                            onRun { VortexShellEngine.setRogMinecraftGameSpace(if (it) 2 else 0) }
                         }
                     )
                 }
@@ -744,13 +826,13 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "ROG / PC Competitive Graphic Preset",
-                        subtitle = "Mengaktifkan Game Mode Performance (Mode 2) & mematikan seluruh animasi transisi sistem.",
+                        title = "ROG / PC Minecraft Extreme Blocky Texture",
+                        subtitle = "Aktifkan tekstur kotak-kotak super ringan (0.30 scale factor) khusus untuk Free Fire.",
                         checked = emuMonitor,
                         onCheckedChange = {
                             emuMonitor = it
                             prefs.edit().putBoolean("emuMonitor", it).apply()
-                            onRun { VortexShellEngine.setRogPcGameSpace(context, it) }
+                            onRun { VortexShellEngine.setRogMinecraftGameSpace(if (it) 3 else 0) }
                         }
                     )
                 }
