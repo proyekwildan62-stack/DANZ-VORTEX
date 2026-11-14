@@ -5,6 +5,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
@@ -12,6 +14,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Choreographer
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -50,10 +53,90 @@ val CardBorder = Color(0xFF381414)
 val CrimsonRed = Color(0xFFE50914)
 val TextGray = Color(0xFF9E9E9E)
 
+/**
+ * Custom View untuk menggambar Crosshair Presisi Tinggi menggunakan Canvas
+ * sehingga 100% berada tepat di titik tengah dan bisa dikustomisasi ukuran, bentuk, warna, & posisi.
+ */
+class CustomCrosshairView(context: Context) : View(context) {
+    var styleIndex: Int = 0 // 0: Cross+Dot, 1: Circle+Dot, 2: Pure Dot, 3: X-Mark, 4: Box Aim, 5: T-Shape
+    var crosshairColor: Int = android.graphics.Color.RED
+    var sizePx: Float = 36f
+    var strokeWidthPx: Float = 4f
+    var alphaVal: Int = 255
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val cx = width / 2f
+        val cy = height / 2f
+        val half = sizePx / 2f
+
+        paint.color = crosshairColor
+        paint.alpha = alphaVal
+        paint.strokeWidth = strokeWidthPx
+
+        when (styleIndex) {
+            0 -> { // Plus + Center Gap + Dot
+                paint.style = Paint.Style.STROKE
+                val gap = sizePx * 0.2f
+                canvas.drawLine(cx - half, cy, cx - gap, cy, paint)
+                canvas.drawLine(cx + gap, cy, cx + half, cy, paint)
+                canvas.drawLine(cx, cy - half, cx, cy - gap, paint)
+                canvas.drawLine(cx, cy + gap, cx, cy + half, paint)
+                paint.style = Paint.Style.FILL
+                canvas.drawCircle(cx, cy, strokeWidthPx * 0.9f, paint)
+            }
+            1 -> { // Circle + Center Dot
+                paint.style = Paint.Style.STROKE
+                canvas.drawCircle(cx, cy, half, paint)
+                paint.style = Paint.Style.FILL
+                canvas.drawCircle(cx, cy, strokeWidthPx * 1.1f, paint)
+            }
+            2 -> { // Pure Headshot Dot
+                paint.style = Paint.Style.FILL
+                canvas.drawCircle(cx, cy, half * 0.45f, paint)
+                paint.style = Paint.Style.STROKE
+                paint.color = android.graphics.Color.BLACK
+                paint.strokeWidth = 2f
+                canvas.drawCircle(cx, cy, half * 0.45f, paint)
+            }
+            3 -> { // X Hitmarker
+                paint.style = Paint.Style.STROKE
+                canvas.drawLine(cx - half, cy - half, cx + half, cy + half, paint)
+                canvas.drawLine(cx + half, cy - half, cx - half, cy + half, paint)
+            }
+            4 -> { // Box Bracket + Dot
+                paint.style = Paint.Style.STROKE
+                canvas.drawRect(cx - half, cy - half, cx + half, cy + half, paint)
+                paint.style = Paint.Style.FILL
+                canvas.drawCircle(cx, cy, strokeWidthPx, paint)
+            }
+            5 -> { // Pro T-Crosshair
+                paint.style = Paint.Style.STROKE
+                canvas.drawLine(cx - half, cy, cx + half, cy, paint)
+                canvas.drawLine(cx, cy, cx, cy + half, paint)
+                paint.style = Paint.Style.FILL
+                canvas.drawCircle(cx, cy, strokeWidthPx, paint)
+            }
+        }
+    }
+}
+
 object FloatingOverlayController {
-    private var crosshairView: TextView? = null
+    private var crosshairView: CustomCrosshairView? = null
+    private var crosshairParams: WindowManager.LayoutParams? = null
     private var monitorLayout: LinearLayout? = null
     private var fpsRunning = false
+
+    var currentStyle = 0
+    var currentColor = android.graphics.Color.RED
+    var currentSize = 42f
+    var currentStroke = 4.5f
+    var currentOffsetX = 0
+    var currentOffsetY = 0
+
+    fun isCrosshairActive(): Boolean = crosshairView != null
 
     fun toggleCrosshair(context: Context, enable: Boolean) {
         if (!Settings.canDrawOverlays(context)) {
@@ -63,32 +146,58 @@ object FloatingOverlayController {
             Toast.makeText(context, "Izinkan 'Tampilkan di atas aplikasi lain' terlebih dahulu!", Toast.LENGTH_LONG).show()
             return
         }
-        val wm = context.applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val appCtx = context.applicationContext
+        val wm = appCtx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         if (enable) {
-            if (crosshairView != null) return
-            val tv = TextView(context.applicationContext).apply {
-                text = "╋"
-                textSize = 18f
-                setTextColor(android.graphics.Color.RED)
-                gravity = Gravity.CENTER
+            if (crosshairView != null) {
+                updateCrosshairConfig(context)
+                return
+            }
+            val view = CustomCrosshairView(appCtx).apply {
+                styleIndex = currentStyle
+                crosshairColor = currentColor
+                sizePx = currentSize
+                strokeWidthPx = currentStroke
             }
             val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                180,
+                180,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.CENTER
+                x = currentOffsetX
+                y = currentOffsetY
             }
-            wm.addView(tv, params)
-            crosshairView = tv
+            wm.addView(view, params)
+            crosshairView = view
+            crosshairParams = params
         } else {
             crosshairView?.let {
                 wm.removeView(it)
                 crosshairView = null
+                crosshairParams = null
             }
         }
+    }
+
+    fun updateCrosshairConfig(context: Context) {
+        val view = crosshairView ?: return
+        val params = crosshairParams ?: return
+        val wm = context.applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+        view.styleIndex = currentStyle
+        view.crosshairColor = currentColor
+        view.sizePx = currentSize
+        view.strokeWidthPx = currentStroke
+        view.invalidate()
+
+        params.x = currentOffsetX
+        params.y = currentOffsetY
+        wm.updateViewLayout(view, params)
     }
 
     fun togglePerfMonitor(context: Context, enable: Boolean) {
@@ -288,12 +397,18 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
     var liveShellOutput by remember { mutableStateOf(VortexShellEngine.lastExecutionLog) }
     val scope = rememberCoroutineScope()
 
+    LaunchedEffect(Unit) {
+        if (VortexShellEngine.isShizukuAvailable() && !VortexShellEngine.hasShizukuPermission()) {
+            VortexShellEngine.requestShizukuPermission()
+        }
+    }
+
     fun executeRealCommand(block: () -> String) {
         scope.launch {
             isProcessing = true
             val out = withContext(Dispatchers.IO) { block() }
             liveShellOutput = out
-            delay(450)
+            delay(400)
             isProcessing = false
         }
     }
@@ -304,11 +419,7 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
             FloatingActionButton(
                 onClick = {
                     VortexShellEngine.requestShizukuPermission()
-                    liveShellOutput = if (VortexShellEngine.hasShizukuPermission()) {
-                        "Shizuku UID 2000 Connected! Semua fitur 100% Aktif."
-                    } else {
-                        "Buka aplikasi Shizuku -> Start via Wireless Debugging -> Izinkan DANZVORTEX."
-                    }
+                    liveShellOutput = VortexShellEngine.lastExecutionLog
                     Toast.makeText(context, liveShellOutput, Toast.LENGTH_SHORT).show()
                 },
                 containerColor = CrimsonRed,
@@ -363,7 +474,7 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
                         Text(
                             text = when (currentTab) {
                                 0 -> "Sync System Environment"
-                                1 -> "Explore Features"
+                                1 -> "Explore Features & Custom Crosshair"
                                 2 -> "High Features"
                                 else -> "1 Key 1 Device & Reseller Panel"
                             },
@@ -458,7 +569,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     val prefs = remember { context.getSharedPreferences("danz_toggles", Context.MODE_PRIVATE) }
     var tacticalRec by remember { mutableStateOf(prefs.getBoolean("tacticalRec", false)) }
     var rogSpace by remember { mutableStateOf(prefs.getBoolean("rogSpace", false)) }
-    var selectedMinecraftPreset by remember { mutableStateOf(prefs.getInt("mcPreset", 2)) }
+    var selectedMinecraftPreset by remember { mutableStateOf(prefs.getInt("mcPreset", 3)) }
     val shizukuGranted = VortexShellEngine.hasShizukuPermission()
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -496,7 +607,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
                 EnvRow("ABI Supported", Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a")
                 Spacer(modifier = Modifier.height(8.dp))
-                EnvRow("Shizuku UID 2000", if (shizukuGranted) "GRANTED (REAL NO-ROOT ACTIVE)" else "NOT BOUND (TAP >_ BUTTON)")
+                EnvRow("Shizuku UID 2000", if (shizukuGranted) "CONNECTED (100% READY)" else "NOT BOUND (TAP >_ DULU)")
             }
         }
 
@@ -508,7 +619,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 onCheckedChange = {
                     tacticalRec = it
                     prefs.edit().putBoolean("tacticalRec", it).apply()
-                    onRun { VortexShellEngine.setDragHsSensitivity(it, 5) }
+                    onRun { VortexShellEngine.setDragHsSensitivity(it, 6) }
                 }
             )
         }
@@ -561,7 +672,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val presets = listOf(
-                    Triple(1, "ROG / PC Competitive Smooth", "Buffer 0.75 + SkiaGL 120FPS (Tajam & Enteng)"),
+                    Triple(1, "ROG / PC Competitive Smooth", "Buffer 0.70 + SkiaGL 120FPS (Tajam & Enteng)"),
                     Triple(2, "Tekstur Minecraft V1 (Semi-Kotak)", "Buffer 0.45 + No MSAA (Grafik Kotak Ringan)"),
                     Triple(3, "Tekstur Minecraft V2 (Super Blocky)", "Buffer 0.30 + Low LOD Pixel (Grafik Minecraft Parah)")
                 )
@@ -606,37 +717,57 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
             }
         }
 
+        // TOMBOL LAUNCH FREE FIRE BIASA & FREE FIRE MAX (PASTI BISA DIBUKA)
         item {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(CardDark)
-                    .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
-                    .clickable {
-                        val activeMode = if (rogSpace) selectedMinecraftPreset else 2
-                        onRun { VortexShellEngine.setRogMinecraftGameSpace(activeMode) }
-                        val launchIntent = context.packageManager.getLaunchIntentForPackage("com.dts.freefireth")
-                            ?: context.packageManager.getLaunchIntentForPackage("com.dts.freefiremax")
-                        if (launchIntent != null) {
-                            context.startActivity(launchIntent)
-                        } else {
-                            Toast.makeText(context, "Free Fire tidak terinstal di HP ini", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .border(1.dp, CrimsonRed, RoundedCornerShape(14.dp))
+                    .padding(16.dp)
             ) {
-                Box(
-                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)).background(CrimsonRed),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.SportsEsports, contentDescription = null, tint = Color.White)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(46.dp).clip(RoundedCornerShape(10.dp)).background(CrimsonRed),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.SportsEsports, contentDescription = null, tint = Color.White)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Game Launcher & Injector", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Otomatis menerapkan Tekstur Minecraft & membuka Game", color = TextGray, fontSize = 12.sp)
+                    }
                 }
-                Spacer(modifier = Modifier.width(14.dp))
-                Column {
-                    Text("Free Fire (Tap to Inject & Launch)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("Terapkan Tekstur Game Space & langsung buka Free Fire", color = TextGray, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = {
+                            onRun {
+                                if (rogSpace) VortexShellEngine.setRogMinecraftGameSpace(selectedMinecraftPreset)
+                                VortexShellEngine.launchFreeFire(context, preferMax = false)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("BUKA FREE FIRE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                    Button(
+                        onClick = {
+                            onRun {
+                                if (rogSpace) VortexShellEngine.setRogMinecraftGameSpace(selectedMinecraftPreset)
+                                VortexShellEngine.launchFreeFire(context, preferMax = true)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF331212)),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("BUKA FF MAX", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
             }
         }
@@ -671,22 +802,30 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     var fpsBooster by remember { mutableStateOf(prefs.getBoolean("fpsBooster", false)) }
     var hyperTouch by remember { mutableStateOf(prefs.getBoolean("hyperTouch", false)) }
 
-    var crosshairAim by remember { mutableStateOf(false) }
+    // State untuk Custom Crosshair Studio
+    var crosshairAim by remember { mutableStateOf(FloatingOverlayController.isCrosshairActive()) }
+    var chStyle by remember { mutableStateOf(FloatingOverlayController.currentStyle) }
+    var chSize by remember { mutableStateOf(FloatingOverlayController.currentSize) }
+    var chStroke by remember { mutableStateOf(FloatingOverlayController.currentStroke) }
+    var chColor by remember { mutableStateOf(FloatingOverlayController.currentColor) }
+    var chOffsetX by remember { mutableStateOf(FloatingOverlayController.currentOffsetX.toFloat()) }
+    var chOffsetY by remember { mutableStateOf(FloatingOverlayController.currentOffsetY.toFloat()) }
+
     var perfMonitor by remember { mutableStateOf(false) }
     var emuMonitor by remember { mutableStateOf(prefs.getBoolean("emuMonitor", false)) }
 
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Configs", "Visual (Overlay)", "Tools").forEachIndexed { idx, title ->
+            listOf("Configs", "Custom Crosshair & Visual", "Tools").forEachIndexed { idx, title ->
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (subTab == idx) CrimsonRed else CardDark)
                         .border(1.dp, if (subTab == idx) CrimsonRed else CardBorder, RoundedCornerShape(8.dp))
                         .clickable { subTab = idx }
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Text(title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -714,7 +853,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         onCheckedChange = {
                             dynSens = it
                             prefs.edit().putBoolean("dynSens", it).apply()
-                            onRun { VortexShellEngine.setAimDragAndTouchMatrix(it) }
+                            onRun { VortexShellEngine.setAimDragAndTouchMatrix(it, "DynamicSens") }
                         }
                     )
                 }
@@ -759,7 +898,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         onCheckedChange = {
                             motionResp = it
                             prefs.edit().putBoolean("motionResp", it).apply()
-                            onRun { VortexShellEngine.setAimDragAndTouchMatrix(it) }
+                            onRun { VortexShellEngine.setAimDragAndTouchMatrix(it, "Motion120Hz") }
                         }
                     )
                 }
@@ -795,24 +934,174 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         onCheckedChange = {
                             hyperTouch = it
                             prefs.edit().putBoolean("hyperTouch", it).apply()
-                            onRun { VortexShellEngine.setAimDragAndTouchMatrix(it) }
+                            onRun { VortexShellEngine.setAimDragAndTouchMatrix(it, "HyperTouch240") }
                         }
                     )
                 }
             }
         } else {
+            // TAB VISUAL & CUSTOM CROSSHAIR STUDIO LENGKAP
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
-                    ToggleFeatureCard(
-                        title = "Crosshair Aim-Assistant (Real Floating Overlay)",
-                        subtitle = "Menampilkan titik bidik merah asli di tengah layar yang tetap muncul di atas Free Fire.",
-                        checked = crosshairAim,
-                        onCheckedChange = {
-                            crosshairAim = it
-                            FloatingOverlayController.toggleCrosshair(context, it)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(CardDark)
+                            .border(1.dp, if (crosshairAim) CrimsonRed else CardBorder, RoundedCornerShape(16.dp))
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Custom Crosshair Aim-Assistant", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                                Text("Bidikan melayang di atas Free Fire (Bisa diatur Bentuk, Warna, Ukuran, & Posisi X/Y)", color = TextGray, fontSize = 12.sp)
+                            }
+                            Switch(
+                                checked = crosshairAim,
+                                onCheckedChange = {
+                                    crosshairAim = it
+                                    FloatingOverlayController.toggleCrosshair(context, it)
+                                },
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CrimsonRed)
+                            )
                         }
-                    )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text("1. Pilih Bentuk Crosshair:", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val styles = listOf(
+                            Pair(0, "╋ Plus Gap"),
+                            Pair(1, "⊕ Circle Dot"),
+                            Pair(2, "◉ Pure Dot"),
+                            Pair(3, "✕ Hitmark X"),
+                            Pair(4, "[+] Box Aim"),
+                            Pair(5, "┳ Pro T-Aim")
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            styles.chunked(3).forEach { rowStyles ->
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    rowStyles.forEach { (sIdx, sLabel) ->
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(if (chStyle == sIdx) CrimsonRed else Color(0xFF241010))
+                                                .border(1.dp, CrimsonRed, RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    chStyle = sIdx
+                                                    FloatingOverlayController.currentStyle = sIdx
+                                                    FloatingOverlayController.updateCrosshairConfig(context)
+                                                }
+                                                .padding(vertical = 10.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(sLabel, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text("2. Pilih Warna Crosshair:", color = CrimsonRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val colorOptions = listOf(
+                            Pair(android.graphics.Color.RED, Color.Red),
+                            Pair(android.graphics.Color.GREEN, Color(0xFF00E676)),
+                            Pair(android.graphics.Color.CYAN, Color.Cyan),
+                            Pair(android.graphics.Color.YELLOW, Color.Yellow),
+                            Pair(android.graphics.Color.MAGENTA, Color.Magenta),
+                            Pair(android.graphics.Color.WHITE, Color.White)
+                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            colorOptions.forEach { (androidCol, composeCol) ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(composeCol)
+                                        .border(
+                                            width = if (chColor == androidCol) 3.dp else 1.dp,
+                                            color = if (chColor == androidCol) Color.White else Color.Black,
+                                            shape = CircleShape
+                                        )
+                                        .clickable {
+                                            chColor = androidCol
+                                            FloatingOverlayController.currentColor = androidCol
+                                            FloatingOverlayController.updateCrosshairConfig(context)
+                                        }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text("3. Ukuran Crosshair (${chSize.toInt()} px):", color = Color.White, fontSize = 12.sp)
+                        Slider(
+                            value = chSize,
+                            onValueChange = {
+                                chSize = it
+                                FloatingOverlayController.currentSize = it
+                                FloatingOverlayController.updateCrosshairConfig(context)
+                            },
+                            valueRange = 16f..100f,
+                            colors = SliderDefaults.colors(thumbColor = CrimsonRed, activeTrackColor = CrimsonRed)
+                        )
+
+                        Text("4. Ketebalan Garis (${chStroke.toInt()} px):", color = Color.White, fontSize = 12.sp)
+                        Slider(
+                            value = chStroke,
+                            onValueChange = {
+                                chStroke = it
+                                FloatingOverlayController.currentStroke = it
+                                FloatingOverlayController.updateCrosshairConfig(context)
+                            },
+                            valueRange = 1.5f..12f,
+                            colors = SliderDefaults.colors(thumbColor = CrimsonRed, activeTrackColor = CrimsonRed)
+                        )
+
+                        Text("5. Geser Posisi X (${chOffsetX.toInt()}) & Y (${chOffsetY.toInt()}):", color = Color.White, fontSize = 12.sp)
+                        Slider(
+                            value = chOffsetX,
+                            onValueChange = {
+                                chOffsetX = it
+                                FloatingOverlayController.currentOffsetX = it.toInt()
+                                FloatingOverlayController.updateCrosshairConfig(context)
+                            },
+                            valueRange = -200f..200f,
+                            colors = SliderDefaults.colors(thumbColor = CrimsonRed, activeTrackColor = CrimsonRed)
+                        )
+                        Slider(
+                            value = chOffsetY,
+                            onValueChange = {
+                                chOffsetY = it
+                                FloatingOverlayController.currentOffsetY = it.toInt()
+                                FloatingOverlayController.updateCrosshairConfig(context)
+                            },
+                            valueRange = -200f..200f,
+                            colors = SliderDefaults.colors(thumbColor = CrimsonRed, activeTrackColor = CrimsonRed)
+                        )
+
+                        OutlinedButton(
+                            onClick = {
+                                chOffsetX = 0f
+                                chOffsetY = 0f
+                                FloatingOverlayController.currentOffsetX = 0
+                                FloatingOverlayController.currentOffsetY = 0
+                                FloatingOverlayController.updateCrosshairConfig(context)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Reset Posisi Crosshair ke Tengah (0, 0)", color = CrimsonRed, fontSize = 12.sp)
+                        }
+                    }
                 }
+
                 item {
                     ToggleFeatureCard(
                         title = "Performance Monitor (Real-Time FPS & Free RAM Overlay)",
@@ -890,9 +1179,8 @@ fun VortexHighTabScreen(onRun: (() -> String) -> Unit) {
                             vortexFeatures[idx] = item.copy(third = checked)
                             prefs.edit().putBoolean("vf_$idx", checked).apply()
                             onRun {
-                                val r1 = VortexShellEngine.setDragHsSensitivity(checked, 7)
-                                val r2 = VortexShellEngine.setAimDragAndTouchMatrix(checked)
-                                "$r1 | $r2"
+                                VortexShellEngine.setDragHsSensitivity(checked, 7)
+                                VortexShellEngine.setAimDragAndTouchMatrix(checked, item.first)
                             }
                         },
                         colors = SwitchDefaults.colors(
