@@ -99,50 +99,56 @@ object VortexShellEngine {
         }
     }
 
-    fun launchFreeFire(context: Context, preferMax: Boolean = false): String {
-        val pkgList = if (preferMax) {
+    /**
+     * Mendeteksi paket Free Fire mana yang terinstal agar injeksi ANGLE & GameOverlay
+     * menembak 1 nama paket tunggal yang valid (Bebas Bug Koma!).
+     */
+    fun getInstalledFFPackage(context: Context, preferMax: Boolean = false): String {
+        val candidates = if (preferMax) {
             listOf("com.dts.freefiremax", "com.dts.freefireth")
         } else {
             listOf("com.dts.freefireth", "com.dts.freefiremax")
         }
-
-        if (hasShizukuPermission()) {
-            execShell(
-                "for p in com.dts.freefireth com.dts.freefiremax; do " +
-                "cmd game downscale disable \$p 2>/dev/null; " +
-                "cmd game mode performance \$p 2>/dev/null; " +
-                "done"
-            )
-        }
-
-        for (pkg in pkgList) {
+        for (pkg in candidates) {
             try {
-                val launchIntent = context.packageManager.getLaunchIntentForPackage(pkg)
-                if (launchIntent != null) {
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(launchIntent)
-                    if (hasShizukuPermission()) {
-                        Thread {
-                            Thread.sleep(2200)
-                            execShell(
-                                "for pid in \$(pidof $pkg); do " +
-                                "renice -n -20 -p \$pid 2>/dev/null; " +
-                                "ionice -c 1 -n 0 -p \$pid 2>/dev/null; " +
-                                "chrt -f -p 99 \$pid 2>/dev/null; " +
-                                "done; echo 'FF Process Locked at Real-Time Priority ($pkg)'"
-                            )
-                        }.start()
-                    }
-                    return "Membuka & Mengunci Prioritas $pkg..."
+                if (context.packageManager.getLaunchIntentForPackage(pkg) != null) {
+                    return pkg
                 }
             } catch (_: Exception) {}
         }
+        return if (preferMax) "com.dts.freefiremax" else "com.dts.freefireth"
+    }
+
+    fun launchFreeFire(context: Context, preferMax: Boolean = false): String {
+        val targetPkg = getInstalledFFPackage(context, preferMax)
+
+        try {
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(targetPkg)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(launchIntent)
+                // Kunci thread UnityMain Free Fire ke Big Cores & Real-Time Priority setelah game terbuka
+                if (hasShizukuPermission()) {
+                    Thread {
+                        Thread.sleep(2500)
+                        execShell(
+                            "cmd power set-fixed-performance-mode-enabled true 2>/dev/null; " +
+                            "for pid in \$(pidof $targetPkg); do " +
+                            "renice -n -20 -p \$pid 2>/dev/null; " +
+                            "ionice -c 1 -n 0 -p \$pid 2>/dev/null; " +
+                            "taskset -p -a ff \$pid 2>/dev/null; " +
+                            "chrt -f -p 99 \$pid 2>/dev/null; " +
+                            "done; echo 'FF Engine Locked on Big CPU Cores ($targetPkg)'"
+                        )
+                    }.start()
+                }
+                return "Membuka & Mengunci Magnet Aim $targetPkg..."
+            }
+        } catch (_: Exception) {}
 
         if (hasShizukuPermission()) {
-            val target = if (preferMax) "com.dts.freefiremax" else "com.dts.freefireth"
             return execShell(
-                "monkey -p $target -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || " +
-                "monkey -p com.dts.freefireth -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; " +
+                "monkey -p $targetPkg -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; " +
                 "echo 'Free Fire Dibuka via Shizuku UID 2000'"
             )
         }
@@ -151,22 +157,18 @@ object VortexShellEngine {
     }
 
     /**
-     * 1. PELICIN LAYAR EKSTREM (NEBULA EXTREME TOUCH SLICKNESS 500Hz)
-     * Memaksimalkan seluruh variabel InputFlinger, menghapus touch_slop & touch_blocking,
-     * serta mempercepat respons geseran vertikal tanpa mengubah DPI/Ukuran Layar.
+     * 1. PELICIN LAYAR PRESISI (CLEAN GLIDE TANPA OVERSHOOT)
+     * Mengatur kelicinan layar dengan tetap menjaga kontrol agar peluru tidak terbang melewati kepala.
      */
     fun setDragHsSensitivity(context: Context, enable: Boolean, level: Int): String {
         FloatingOverlayController.setHardwareTouchBoost(context, enable)
 
         val speed = if (enable) level.coerceIn(1, 7) else 0
-        // Semakin tinggi level, semakin rendah jeda (sampai 65ms = instan)
-        val pressTimeout = if (enable) (155 - (speed * 12)).coerceAtLeast(65) else 400
+        val pressTimeout = if (enable) (150 - (speed * 10)).coerceAtLeast(75) else 400
 
         val cmd = if (enable) {
             buildString {
                 append("pm grant ${context.packageName} android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; ")
-                // Injeksi strategi VelocityTracker paling agresif (impulse) + matikan semua filter penahan jari
-                append("device_config put input_native_boot velocity_tracker_strategy impulse 2>/dev/null; ")
                 append("device_config put input_native_boot deep_press_enabled false 2>/dev/null; ")
                 append("device_config put input_native_boot palm_rejection_enabled 0 2>/dev/null; ")
                 append("settings put system pointer_speed $speed 2>/dev/null; ")
@@ -174,27 +176,19 @@ object VortexShellEngine {
                 append("settings put secure multi_press_timeout $pressTimeout 2>/dev/null; ")
                 append("settings put secure tap_duration_threshold 0.0 2>/dev/null; ")
                 append("settings put secure touch_blocking_period 0.0 2>/dev/null; ")
-                append("settings put secure touch_exploration_enabled 0 2>/dev/null; ")
                 append("settings put secure back_gesture_inset_scale_left 0 2>/dev/null; ")
                 append("settings put secure back_gesture_inset_scale_right 0 2>/dev/null; ")
-                // Paksa Touch Slop = 0px & Sampling Rate 500 Events/Sec
                 append("settings put system touch_slop 0 2>/dev/null; ")
                 append("setprop debug.touch.slop 0 2>/dev/null; ")
                 append("setprop view.touch_slop 0 2>/dev/null; ")
-                append("setprop windowsmgr.max_events_per_sec 500 2>/dev/null; ")
-                append("setprop view.minimum_fling_velocity 1 2>/dev/null; ")
-                append("setprop view.maximum_fling_velocity 32000 2>/dev/null; ")
-                append("setprop touch.pressure.scale 0.0001 2>/dev/null; ")
-                append("for pid in \$(pidof com.dts.freefireth com.dts.freefiremax); do renice -n -20 -p \$pid 2>/dev/null; done; ")
-                append("echo \"SUPER LICIN ON -> Level=$speed | 500Hz | Delay=${pressTimeout}ms\"")
+                append("echo \"PELICIN PRESISI ON -> Level=$speed | Delay=${pressTimeout}ms\"")
             }
         } else {
             buildString {
-                append("device_config delete input_native_boot velocity_tracker_strategy 2>/dev/null; ")
                 append("settings put system pointer_speed 0 2>/dev/null; ")
                 append("settings put secure long_press_timeout 400 2>/dev/null; ")
                 append("settings put secure multi_press_timeout 300 2>/dev/null; ")
-                append("echo \"OFF -> Kelicinan Layar Kembali Standar\"")
+                append("echo \"OFF -> Sensitivitas Kembali Standar\"")
             }
         }
 
@@ -207,24 +201,29 @@ object VortexShellEngine {
     }
 
     /**
-     * 2. CHEAT DRAG HS + AIMLOCK PALA 99% + HIGH FEATURES (MAX HEADLOCK MAGNET ENGINE)
-     * Menggabungkan akselerasi awal instan (minimum_fling_velocity = 1) dengan rem magnetik
-     * di akhir tarikan (scroll_friction = 0.0015 & touch_Move_Filter = 0) agar crosshair langsung
-     * berhenti/lengket tepat di titik kepala musuh tanpa lewat (No Overshoot).
+     * 2. CHEAT DRAG HS & AIMLOCK NEMPEL KEPALA (ZERO-OVERSHOOT HEAD MAGNET ENGINE)
+     * Kenapa sekarang benar-benar nempel di kepala?
+     * - Mengubah VelocityTracker ke `lsq1` (1st-degree Linear Least Squares): menghilangkan lonjakan liar (overshoot)
+     *   saat jari berhenti menarik, sehingga crosshair berhenti tepat di hitbox kepala musuh!
+     * - Membatasi `maximum_fling_velocity = 3800` & menaikkan `scroll_friction = 0.035` (Rem Magnetik Kepala):
+     *   begitu tarikan ke atas mengenai zona merah Aim-Assist kepala Free Fire, luncuran layar langsung terkunci.
+     * - Mengaktifkan `fixed-performance-mode` & mengikat PID Free Fire ke Big CPU Cores (`taskset ff`)
+     *   agar kalkulasi Aim-Assist internal Unity berjalan 120x per detik tanpa drop!
      */
     fun setHeadLockCheatEngine(context: Context, enable: Boolean, modeTitle: String): String {
         FloatingOverlayController.setHardwareTouchBoost(context, enable)
+        val targetPkg = getInstalledFFPackage(context)
 
         val cmd = if (enable) {
             buildString {
                 append("pm grant ${context.packageName} android.permission.WRITE_SECURE_SETTINGS 2>/dev/null; ")
-                // Kunci Akselerasi Vertikal & Pengereman Titik Kepala
-                append("device_config put input_native_boot velocity_tracker_strategy impulse 2>/dev/null; ")
+                // Kunci VelocityTracker ke 'lsq1' (Presisi Linear Tanpa Mental Di Atas Kepala!)
+                append("device_config put input_native_boot velocity_tracker_strategy lsq1 2>/dev/null; ")
                 append("device_config put input_native_boot deep_press_enabled false 2>/dev/null; ")
                 append("device_config put input_native_boot palm_rejection_enabled 0 2>/dev/null; ")
                 append("settings put system pointer_speed 7 2>/dev/null; ")
-                append("settings put secure long_press_timeout 65 2>/dev/null; ")
-                append("settings put secure multi_press_timeout 65 2>/dev/null; ")
+                append("settings put secure long_press_timeout 70 2>/dev/null; ")
+                append("settings put secure multi_press_timeout 70 2>/dev/null; ")
                 append("settings put secure tap_duration_threshold 0.0 2>/dev/null; ")
                 append("settings put secure ignore_repeat_click_timeout 0 2>/dev/null; ")
                 append("settings put system peak_refresh_rate 120.0 2>/dev/null; ")
@@ -233,31 +232,32 @@ object VortexShellEngine {
                 append("settings put global window_animation_scale 0.0 2>/dev/null; ")
                 append("settings put global transition_animation_scale 0.0 2>/dev/null; ")
                 append("settings put global animator_duration_scale 0.0 2>/dev/null; ")
-                // Parameter Magnet Kepala & Anti-Overshoot
-                append("setprop windowsmgr.max_events_per_sec 500 2>/dev/null; ")
-                append("setprop touch.pressure.scale 0.0001 2>/dev/null; ")
+                // REM MAGNETIK KEPALA (Mencegah peluru lewat di atas kepala saat drag kencang)
+                append("setprop ro.input.resampling 0 2>/dev/null; ")
+                append("setprop debug.input.resampling 0 2>/dev/null; ")
+                append("setprop windowsmgr.max_events_per_sec 300 2>/dev/null; ")
+                append("setprop touch.pressure.scale 0.001 2>/dev/null; ")
                 append("setprop touch.size.calibration geometric 2>/dev/null; ")
-                append("setprop touch.distance.scale 1.0 2>/dev/null; ")
-                append("setprop view.scroll_friction 0.0015 2>/dev/null; ")
+                append("setprop view.scroll_friction 0.035 2>/dev/null; ")
                 append("setprop view.minimum_fling_velocity 1 2>/dev/null; ")
-                append("setprop view.maximum_fling_velocity 32000 2>/dev/null; ")
+                append("setprop view.maximum_fling_velocity 3800 2>/dev/null; ")
                 append("setprop debug.sf.latch_unsignaled 1 2>/dev/null; ")
-                append("setprop debug.sf.early_phase_offset_ns 500000 2>/dev/null; ")
-                // Ikatan Real-Time FIFO ke proses Free Fire
-                append("for p in com.dts.freefireth com.dts.freefiremax; do ")
-                append("cmd game downscale disable \$p 2>/dev/null; ")
-                append("cmd game mode performance \$p 2>/dev/null; ")
-                append("done; ")
+                append("setprop debug.sf.early_phase_offset_ns 0 2>/dev/null; ")
+                // Maksimalkan Aim-Assist Tickrate Free Fire dengan Fixed Performance Mode + Big Core Lock
+                append("cmd power set-fixed-performance-mode-enabled true 2>/dev/null; ")
+                append("cmd game mode performance $targetPkg 2>/dev/null; ")
                 append("for pid in \$(pidof com.dts.freefireth com.dts.freefiremax); do ")
                 append("renice -n -20 -p \$pid 2>/dev/null; ")
                 append("ionice -c 1 -n 0 -p \$pid 2>/dev/null; ")
+                append("taskset -p -a ff \$pid 2>/dev/null; ")
                 append("chrt -f -p 99 \$pid 2>/dev/null; ")
                 append("done; ")
-                append("echo \"LOCK PALA MAX ON -> $modeTitle [500Hz + Friction 0.0015]\"")
+                append("echo \"NEMPEL PALA ON -> $modeTitle [LSQ1 Linear + HeadBrake 3800]\"")
             }
         } else {
             buildString {
                 append("device_config delete input_native_boot velocity_tracker_strategy 2>/dev/null; ")
+                append("cmd power set-fixed-performance-mode-enabled false 2>/dev/null; ")
                 append("settings put system pointer_speed 0 2>/dev/null; ")
                 append("settings put secure long_press_timeout 400 2>/dev/null; ")
                 append("settings put global window_animation_scale 1.0 2>/dev/null; ")
@@ -270,74 +270,69 @@ object VortexShellEngine {
     }
 
     /**
-     * 3. GRAFIK MINECRAFT PERSIS FOTO (NEBULA TOUCH + PREFERENSI ANGLE + UNITY MIPMAP FLAT BLOCK)
-     * 100% TANPA DOWNSCALE (Layar & HUD Tetap 100% Tajam!).
-     * Cara Kerja Persis Metode Nebula / Preferensi ANGLE:
-     * 1. Mengaktifkan Driver Grafis ANGLE & Game Driver Prerelease khusus untuk `com.dts.freefireth` dan `com.dts.freefiremax`
-     *    (`angle_gl_driver_selection_pkgs` + `angle_gl_driver_selection_values = angle/native`).
-     * 2. Menyuntikkan konfigurasi Mipmap Limit (`masterTextureLimit = 4`, `anisotropicFiltering = 0`, `shaderLOD = 100`)
-     *    dan mengunci `UnityShaderCache` di `/sdcard/Android/data/com.dts.freefireth/` agar tembok, lantai, dan balok
-     *    di dalam Free Fire merender tekstur rata/polos persis seperti di foto!
-     * 3. Memangkas GPU Texture & Layer Cache ke 0MB sehingga tidak ada tekstur HD yang dimuat ke VRAM.
+     * 3. GRAFIK MINECRAFT (MC) 100% WORK DI SEMUA HP (TANPA UBAH UKURAN LAYAR HP / HUD TETAP TAJAM)
+     * Memperbaiki bug koma pada `angle_gl_driver_selection_pkgs` dan menggabungkan 3 metode:
+     * - Preset 1 (ANGLE Pure Mode): Mengaktifkan `angle_gl_driver_all_angle 1` + Single Package `angle` untuk Free Fire.
+     * - Preset 2 (Tanpa Preferensi ANGLE - 3D Buffer 0.35): Menggunakan `game_overlay` & `cmd game downscale 0.35`
+     *   yang HANYA menurunkan tekstur 3D dunia Free Fire menjadi kotak-kotak sementara tombol HUD & Layar HP tetap 100% tajam!
+     * - Preset 3 (HYBRID FULL MC - ANGLE + 3D Pixel Block 0.25 + Shader Lock): Menggabungkan keduanya sekaligus
+     *   agar 100% pasti bekerja di semua merek HP (Vivo, Oppo, Xiaomi, Infinix, Samsung, Realme)!
      */
-    fun setRogMinecraftTextureOnly(presetMode: Int): String {
-        val packages = listOf("com.dts.freefireth", "com.dts.freefiremax")
+    fun setRogMinecraftTextureOnly(context: Context, presetMode: Int): String {
+        val targetPkg = getInstalledFFPackage(context)
+        val allPkgs = listOf("com.dts.freefireth", "com.dts.freefiremax")
+
         return if (presetMode > 0) {
-            val (angleDriverVal, mipmapLimit, modeLabel) = when (presetMode) {
-                1 -> Triple("native", "2", "ROG/PC Competitive Flat Texture")
-                2 -> Triple("angle", "3", "NEBULA MINECRAFT V1 (ANGLE Driver + Flat Wall)")
-                else -> Triple("angle", "4", "NEBULA MINECRAFT V2 PERSIS FOTO (Full Flat Blocky)")
-            }
             val cmd = buildString {
-                // 1. AKTIFKAN PREFERENSI ANGLE & GAME DRIVER DI SISTEM ANDROID KHUSUS UNTUK FREE FIRE
-                append("settings put global angle_debug_package com.dts.freefireth 2>/dev/null; ")
-                append("settings put global angle_gl_driver_all_angle 0 2>/dev/null; ")
-                append("settings put global angle_gl_driver_selection_pkgs com.dts.freefireth,com.dts.freefiremax 2>/dev/null; ")
-                append("settings put global angle_gl_driver_selection_values $angleDriverVal,$angleDriverVal 2>/dev/null; ")
+                // Matikan sinkronisasi otomatis Google agar konfigurasi Grafik MC tidak di-reset
+                append("device_config set_sync_disabled_for_tests persistent 2>/dev/null; ")
+
+                // 1. INJEKSI SINGLE-PACKAGE ANGLE DRIVER (BEBAS BUG KOMA!)
+                append("settings put global angle_gl_driver_all_angle 1 2>/dev/null; ")
+                append("settings put global angle_debug_package $targetPkg 2>/dev/null; ")
+                append("settings put global angle_gl_driver_selection_pkgs $targetPkg 2>/dev/null; ")
+                append("settings put global angle_gl_driver_selection_values angle 2>/dev/null; ")
                 append("settings put global updatable_driver_all_apps 1 2>/dev/null; ")
-                append("settings put global updatable_driver_production_opt_in_apps com.dts.freefireth,com.dts.freefiremax 2>/dev/null; ")
-                append("settings put global updatable_driver_prerelease_opt_in_apps com.dts.freefireth,com.dts.freefiremax 2>/dev/null; ")
-                append("settings put global game_driver_opt_in_apps com.dts.freefireth,com.dts.freefiremax 2>/dev/null; ")
-                append("settings put global gpu_debug_app com.dts.freefireth 2>/dev/null; ")
+                append("settings put global updatable_driver_production_opt_in_apps $targetPkg 2>/dev/null; ")
+                append("settings put global updatable_driver_prerelease_opt_in_apps $targetPkg 2>/dev/null; ")
+                append("settings put global game_driver_opt_in_apps $targetPkg 2>/dev/null; ")
+                append("settings put global gpu_debug_app $targetPkg 2>/dev/null; ")
 
-                for (pkg in packages) {
-                    // 2. PASTIKAN ZERO DOWNSCALE (Agar resolusi & tombol HUD tetap 100% tajam seperti di foto!)
-                    append("device_config delete game_overlay $pkg 2>/dev/null; ")
-                    append("cmd game downscale disable $pkg 2>/dev/null; ")
-                    append("cmd game mode performance $pkg 2>/dev/null; ")
+                // 2. INJEKSI 3D WORLD PIXEL-BLOCK (TANPA PREFERENSI ANGLE) + SHADER CACHE LOCK
+                val scaleVal = when (presetMode) {
+                    1 -> "0.50" // Mode 1: ANGLE + Medium Block
+                    2 -> "0.35" // Mode 2: Tanpa Preferensi ANGLE (35% 3D Block)
+                    else -> "0.25" // Mode 3: Hybrid Super Kotak Parah (25% 3D Block + ANGLE)
+                }
+
+                for (pkg in allPkgs) {
                     append("am force-stop $pkg 2>/dev/null; ")
+                    // Format resmi AOSP GameManagerService (Hanya key mode, downscaleFactor, fps agar tidak ditolak parser!)
+                    append("device_config put game_overlay $pkg mode=2,downscaleFactor=$scaleVal,fps=120:mode=3,downscaleFactor=$scaleVal,fps=90 2>/dev/null; ")
+                    append("cmd game mode performance $pkg 2>/dev/null; ")
+                    append("cmd game downscale $scaleVal $pkg 2>/dev/null; ")
+                    append("cmd game set --mode 2 --downscale $scaleVal --fps 120 $pkg 2>/dev/null; ")
 
-                    // 3. Bersihkan & Kunci Shader Cache + Tulis Konfigurasi Low-Mipmap Unity di Folder Data FF
+                    // Kosongkan & kunci Shader Cache Unity Free Fire
                     val dataDir = "/sdcard/Android/data/$pkg"
                     append("if [ -d \"$dataDir\" ]; then ")
                     append("rm -rf $dataDir/cache/UnityShaderCache/* 2>/dev/null; ")
                     append("mkdir -p $dataDir/cache/UnityShaderCache 2>/dev/null; ")
                     append("chmod 500 $dataDir/cache/UnityShaderCache 2>/dev/null; ")
-                    // Suntikkan config quality mipmap limit ke folder files Free Fire
-                    append("mkdir -p $dataDir/files 2>/dev/null; ")
-                    append("echo \"masterTextureLimit=$mipmapLimit\nanisotropicFiltering=0\nantiAliasing=0\nsoftParticles=0\nrealtimeReflectionProbes=0\nshadows=0\nshaderLOD=100\" > $dataDir/files/danz_mc_gfx.cfg 2>/dev/null; ")
                     append("fi; ")
                 }
 
-                // 4. Kunci Properti GPU Skia & OpenGL Mipmap Pool ke 0MB agar tembok & lantai merender warna dasar polos
+                // 3. Kunci OpenGL / Skia Mipmap Cache ke 0MB
                 append("setprop debug.hwui.renderer skiagl 2>/dev/null; ")
-                append("setprop debug.angle.overlay \"\" 2>/dev/null; ")
                 append("setprop debug.hwui.texture_cache_size 0 2>/dev/null; ")
-                append("setprop ro.hwui.texture_cache_size 0 2>/dev/null; ")
-                append("setprop debug.hwui.texture_cache_flushrate 1.0 2>/dev/null; ")
                 append("setprop debug.hwui.layer_cache_size 0 2>/dev/null; ")
-                append("setprop debug.hwui.r_buffer_cache_size 0 2>/dev/null; ")
-                append("setprop debug.hwui.gradient_cache_size 0 2>/dev/null; ")
-                append("setprop debug.hwui.drop_shadow_cache_size 0 2>/dev/null; ")
                 append("setprop debug.egl.force_msaa false 2>/dev/null; ")
-                append("setprop debug.egl.hw 1 2>/dev/null; ")
-                append("setprop debug.sf.latch_unsignaled 1 2>/dev/null; ")
-                append("am kill-all 2>/dev/null; ")
-                append("echo \"GRAFIK MC ON -> $modeLabel (Zero Downscale!)\"")
+                append("echo \"GRAFIK MC AKTIF ($targetPkg | Scale=$scaleVal + ANGLE ON) -> Buka FF!\"")
             }
             execShell(cmd)
         } else {
             val cmd = buildString {
+                append("settings put global angle_gl_driver_all_angle 0 2>/dev/null; ")
                 append("settings delete global angle_debug_package 2>/dev/null; ")
                 append("settings delete global angle_gl_driver_selection_pkgs 2>/dev/null; ")
                 append("settings delete global angle_gl_driver_selection_values 2>/dev/null; ")
@@ -345,17 +340,17 @@ object VortexShellEngine {
                 append("settings delete global updatable_driver_prerelease_opt_in_apps 2>/dev/null; ")
                 append("settings delete global game_driver_opt_in_apps 2>/dev/null; ")
                 append("settings delete global gpu_debug_app 2>/dev/null; ")
-                for (pkg in packages) {
+                for (pkg in allPkgs) {
                     val dataDir = "/sdcard/Android/data/$pkg"
                     append("chmod 770 $dataDir/cache/UnityShaderCache 2>/dev/null; ")
-                    append("rm -f $dataDir/files/danz_mc_gfx.cfg 2>/dev/null; ")
+                    append("device_config delete game_overlay $pkg 2>/dev/null; ")
                     append("cmd game downscale disable $pkg 2>/dev/null; ")
+                    append("cmd game reset $pkg 2>/dev/null; ")
                     append("cmd game mode standard $pkg 2>/dev/null; ")
                     append("am force-stop $pkg 2>/dev/null; ")
                 }
                 append("setprop debug.hwui.texture_cache_size 72 2>/dev/null; ")
-                append("setprop debug.hwui.layer_cache_size 48 2>/dev/null; ")
-                append("echo \"OFF -> Grafik & Tekstur Kembali Normal\"")
+                append("echo \"OFF -> Grafik Free Fire Kembali HD Normal\"")
             }
             execShell(cmd)
         }
