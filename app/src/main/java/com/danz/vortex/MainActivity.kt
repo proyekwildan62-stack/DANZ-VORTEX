@@ -337,7 +337,7 @@ class MainActivity : ComponentActivity() {
     private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
             Thread { VortexShellEngine.bindAndGrantPermissions(applicationContext) }.start()
-            Toast.makeText(this, "Shizuku Aktif & Penyebab Lag Dibersihkan!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Shizuku Aktif & AimBot Langsung HS Siap!", Toast.LENGTH_LONG).show()
         } else {
             Toast.makeText(this, "Izin Shizuku ditolak!", Toast.LENGTH_LONG).show()
         }
@@ -518,16 +518,16 @@ fun MainDashboard(role: String, hwid: String, onLogout: () -> Unit) {
                             text = when (currentTab) {
                                 0 -> "Home"
                                 1 -> "Main Menu"
-                                2 -> "Vortex XIT V10"
+                                2 -> "Vortex AimBot"
                                 else -> "Key Manager"
                             },
                             color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = when (currentTab) {
-                                0 -> "Anti-Lag 120FPS & Smooth XIT Injector"
-                                1 -> "Anti-Ngestak Slickness & Visual"
-                                2 -> "High Features (Smooth Nempel Kepala)"
+                                0 -> "XIT Inject + AimBot Langsung HS"
+                                1 -> "Instant Head-Snap & Custom Visual"
+                                2 -> "High Features (AimBot Langsung HS)"
                                 else -> "1 Key 1 Device & Reseller Panel"
                             },
                             color = CrimsonRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
@@ -602,28 +602,28 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
     var xitInjected by remember { mutableStateOf(prefs.getBoolean("xitInjected", false)) }
     var tacticalRec by remember { mutableStateOf(prefs.getBoolean("tacticalRec", false)) }
     var rogSpace by remember { mutableStateOf(prefs.getBoolean("rogSpace", false)) }
-    var selectedMinecraftPreset by remember { mutableStateOf(prefs.getInt("mcPreset", 3)) }
 
     val shizukuGranted = VortexShellEngine.hasShizukuPermission()
     val detectedFF = remember { VortexShellEngine.getInstalledFFPackage(context) }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // KARTU UTAMA: XIT INJECT = AIMBOT LANGSUNG HS
         item {
             Column(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
                     .border(1.5.dp, CrimsonRed, RoundedCornerShape(16.dp)).padding(16.dp)
             ) {
-                Text("DANZVORTEX SMOOTH XIT INJECTOR V10 (ZERO LAG)", color = CrimsonRed, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                Text("XIT INJECTOR + AIMBOT LANGSUNG HS", color = CrimsonRed, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = if (xitInjected) "● STATUS: SMOOTH XIT INJECTED ($detectedFF)" else "● STATUS: READY TO INJECT ($detectedFF)",
+                    text = if (xitInjected) "● STATUS: AIMBOT LANGSUNG HS ACTIVE ($detectedFF)" else "● STATUS: READY TO INJECT ($detectedFF)",
                     color = if (xitInjected) Color(0xFF00E676) else TextGray,
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Injeksi 1x bersih tanpa loop berat: membuka kunci ShaderCache (Anti Patah-patah) + kalibrasi Head-Snap mulus.",
+                    text = "Menyuntikkan XIT AimBot Head-Priority (BodyMagnet=0.0, HeadLock=1.0, Y-Axis Snap 3.25x) agar tembakan langsung naik & mengunci di kepala tanpa lag.",
                     color = TextGray,
                     fontSize = 11.sp
                 )
@@ -632,25 +632,25 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                     onClick = {
                         xitInjected = true
                         prefs.edit().putBoolean("xitInjected", true).apply()
-                        onRun { VortexShellEngine.injectXitData(context, true) }
+                        onRun { VortexShellEngine.injectXitAimbotInstantHs(context, true, "XIT-AIMBOT-INSTANT-HS") }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
                     modifier = Modifier.fillMaxWidth().height(46.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("INJECT XIT DATA + FIX PATAH-PATAH", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                    Text("INJECT XIT + AIMBOT LANGSUNG HS", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = {
                         xitInjected = false
                         prefs.edit().putBoolean("xitInjected", false).apply()
-                        onRun { VortexShellEngine.injectXitData(context, false) }
+                        onRun { VortexShellEngine.injectXitAimbotInstantHs(context, false) }
                     },
                     modifier = Modifier.fillMaxWidth().height(42.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("RESTORE DATA & RESET NORMAL", color = TextGray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("RESTORE DATA (MATIKAN AIMBOT)", color = TextGray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }
@@ -666,105 +666,34 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 Spacer(modifier = Modifier.height(6.dp))
                 EnvRow("Shizuku UID 2000", if (shizukuGranted) "GRANTED (100% WORK)" else "NOT BOUND (TAP >_)")
                 Spacer(modifier = Modifier.height(6.dp))
-                EnvRow("VRAM & Shader Cache", "96MB Unlocked (Anti-Stutter)")
+                EnvRow("AimBot Mode", "Instant Headshot (Body Lock 0%)")
             }
         }
 
         item {
             ToggleFeatureCard(
-                title = "Smooth Drag Slickness (Anti-Ngestak 165ms)",
-                subtitle = "Melicinkan tarikan ke kepala tanpa memutus tahanan tombol tembak & tanpa membebani CPU.",
+                title = "Instant Head-Snap Slickness (Langsung HS)",
+                subtitle = "Mengaktifkan akselerasi vertikal Y-Axis 3.25x & memutus magnet dada agar peluru langsung mengunci kepala.",
                 checked = tacticalRec,
                 onCheckedChange = {
                     tacticalRec = it
                     prefs.edit().putBoolean("tacticalRec", it).apply()
-                    onRun { VortexShellEngine.setDragHsSensitivity(context, it, 7) }
+                    onRun { VortexShellEngine.injectXitAimbotInstantHs(context, it, "HEAD-SNAP-SLICK") }
                 }
             )
         }
 
         item {
-            Column(
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CardDark)
-                    .border(1.dp, if (rogSpace) CrimsonRed else CardBorder, RoundedCornerShape(16.dp)).padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text("Danz Game Space (Grafik Ringan & MC V10)", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Mengaktifkan Prerelease/ANGLE Driver + Auto-Inject Config dari folder Download/mc_config ke gameassetbundles (Tanpa Lag!).",
-                            color = TextGray, fontSize = 11.sp, lineHeight = 15.sp
-                        )
-                    }
-                    Switch(
-                        checked = rogSpace,
-                        onCheckedChange = {
-                            rogSpace = it
-                            prefs.edit().putBoolean("rogSpace", it).apply()
-                            onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) selectedMinecraftPreset else 0) }
-                        },
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CrimsonRed)
-                    )
+            ToggleFeatureCard(
+                title = "Danz Game Space (ROG / PC 120FPS Stabilizer)",
+                subtitle = "Mengaktifkan performa 120FPS murni, membersihkan RAM background, dan menjaga game tetap enteng tanpa ubah layar.",
+                checked = rogSpace,
+                onCheckedChange = {
+                    rogSpace = it
+                    prefs.edit().putBoolean("rogSpace", it).apply()
+                    onRun { VortexShellEngine.setRogPerformanceSpace(context, it) }
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-                val presets = listOf(
-                    Triple(1, "Mode 1: ROG / PC Smooth 120FPS (SkiaGL)", "VRAM Cache 96MB + Unlock ShaderCache (Super Enteng)"),
-                    Triple(2, "Mode 2: SkiaVK Vulkan + Low Mipmap Config", "Vulkan Renderer + Mipmap Limit 3 (Tanpa Downscale)"),
-                    Triple(3, "Mode 3: ANGLE Driver + Auto-Inject mc_config", "ANGLE Driver + Suntik File Download/mc_config ke FF")
-                )
-
-                presets.forEach { (modeId, title, desc) ->
-                    val isSelected = selectedMinecraftPreset == modeId
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(10.dp))
-                            .background(if (isSelected) Color(0xFF2B1010) else Color(0xFF140808))
-                            .border(1.dp, if (isSelected) CrimsonRed else CardBorder, RoundedCornerShape(10.dp))
-                            .clickable {
-                                selectedMinecraftPreset = modeId
-                                prefs.edit().putInt("mcPreset", modeId).apply()
-                                if (rogSpace) onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
-                            }.padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text(desc, color = TextGray, fontSize = 11.sp)
-                        }
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = {
-                                selectedMinecraftPreset = modeId
-                                prefs.edit().putInt("mcPreset", modeId).apply()
-                                if (rogSpace) onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, modeId) }
-                            },
-                            colors = RadioButtonDefaults.colors(selectedColor = CrimsonRed, unselectedColor = TextGray)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = {
-                        try {
-                            val intent = Intent("android.settings.GRAPHICS_DRIVER_SETTINGS")
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Buka Opsi Pengembang -> Preferensi Driver Grafis", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Buka Preferensi Driver Grafis Bawaan HP", color = CrimsonRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+            )
         }
 
         item {
@@ -772,7 +701,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 Button(
                     onClick = {
                         onRun {
-                            if (xitInjected) VortexShellEngine.injectXitData(context, true)
+                            if (xitInjected) VortexShellEngine.injectXitAimbotInstantHs(context, true)
                             VortexShellEngine.launchFreeFire(context, preferMax = false)
                         }
                     },
@@ -785,7 +714,7 @@ fun HomeTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 Button(
                     onClick = {
                         onRun {
-                            if (xitInjected) VortexShellEngine.injectXitData(context, true)
+                            if (xitInjected) VortexShellEngine.injectXitAimbotInstantHs(context, true)
                             VortexShellEngine.launchFreeFire(context, preferMax = true)
                         }
                     },
@@ -838,7 +767,7 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Pelicin Anti-Lag", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
+            listOf("AimBot & Pelicin HS", "Visual (Crosshair & Monitor)").forEachIndexed { idx, title ->
                 Box(
                     modifier = Modifier.clip(RoundedCornerShape(8.dp))
                         .background(if (subTab == idx) CrimsonRed else CardDark)
@@ -855,20 +784,20 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     ToggleFeatureCard(
-                        title = "Smooth LSQ2 Touch Matrix (Anti-Ngestak)",
-                        subtitle = "Kalibrasi kurva geseran lsq2 + 180 events/sec yang 100% sinkron dengan mesin Unity tanpa lag.",
+                        title = "XIT AimBot Touch Matrix (Langsung HS)",
+                        subtitle = "Menyuntikkan matriks sentuhan AimBot (MinFling 420 + Scroll Friction 0.005) agar langsung naik ke kepala.",
                         checked = sensGameLab,
                         onCheckedChange = {
                             sensGameLab = it
                             prefs.edit().putBoolean("sensGameLab", it).apply()
-                            onRun { VortexShellEngine.injectXitData(context, it) }
+                            onRun { VortexShellEngine.injectXitAimbotInstantHs(context, it, "AIMBOT-MATRIX") }
                         }
                     )
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Dynamic Drag Sensitivity (165ms Clean Hold)",
-                        subtitle = "Mencegah tombol tembak terputus saat ditahan untuk drag headshot.",
+                        title = "Dynamic Instant Drag (Anti-Nempel Badan)",
+                        subtitle = "Memutus tarikan magnet dada Free Fire sehingga bidikan langsung melompat ke kepala.",
                         checked = dynSens,
                         onCheckedChange = {
                             dynSens = it
@@ -882,8 +811,8 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(CardDark)
                             .border(1.dp, CardBorder, RoundedCornerShape(14.dp)).padding(16.dp)
                     ) {
-                        Text("Level Kelicinan Tarikan (1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Geser ke LEV.7 untuk daya angkat mulus ke kepala tanpa ubah DPI layar.", color = TextGray, fontSize = 12.sp)
+                        Text("Level Tarikan AimBot HS (1 - 7)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Geser ke LEV.7 untuk daya angkat maksimal ke kepala tanpa ubah DPI layar.", color = TextGray, fontSize = 12.sp)
                         Slider(
                             value = sensLevel,
                             onValueChange = { sensLevel = it },
@@ -899,20 +828,20 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Motion Response (Zero Animation Lag)",
-                        subtitle = "Mematikan beban animasi sistem Android saat bermain Free Fire.",
+                        title = "Zero Recoil & Spread Lock",
+                        subtitle = "Menstabilkan rentetan peluru di satu titik tengah kepala.",
                         checked = motionResp,
                         onCheckedChange = {
                             motionResp = it
                             prefs.edit().putBoolean("motionResp", it).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, it, "MotionSmooth") }
+                            onRun { VortexShellEngine.injectXitAimbotInstantHs(context, it, "ZERO-RECOIL-HS") }
                         }
                     )
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "Touch Slop 1px Stabilizer",
-                        subtitle = "Menjaga titik bidik tidak bergetar namun langsung merespons tarikan vertikal.",
+                        title = "Zero Touch Slop (0px Instant Trigger)",
+                        subtitle = "Menghapus jeda geseran awal pada tombol tembak agar sentakan sekecil apa pun langsung naik.",
                         checked = sensAdjust,
                         onCheckedChange = {
                             sensAdjust = it
@@ -923,13 +852,13 @@ fun FeatureTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                 }
                 item {
                     ToggleFeatureCard(
-                        title = "FPS Booster (96MB VRAM + Shader Unlock)",
-                        subtitle = "Membuka kunci UnityShaderCache & meluaskan VRAM cache agar tidak patah-patah.",
+                        title = "120FPS Smooth Stabilizer (Anti-Lag)",
+                        subtitle = "Membebaskan 96MB VRAM Cache & mematikan animasi sistem agar game super ringan.",
                         checked = fpsBooster,
                         onCheckedChange = {
                             fpsBooster = it
                             prefs.edit().putBoolean("fpsBooster", it).apply()
-                            onRun { VortexShellEngine.setRogMinecraftTextureOnly(context, if (it) 1 else 0) }
+                            onRun { VortexShellEngine.setRogPerformanceSpace(context, it) }
                         }
                     )
                 }
@@ -1120,14 +1049,14 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
 
     val vortexFeatures = remember {
         mutableStateListOf(
-            Triple("DRAG HS (CHEAT) [SMOOTH HEAD-SNAP]", "Injeksi LSQ2 Curve + MinFling 320 + MaxFling 14500 agar tarikan ke kepala enteng & bebas ngestak.", prefs.getBoolean("vf_0", false)),
-            Triple("AIMLOCK (CHEAT) [NEMPEL PALA V10]", "Mengunci Scroll Friction 0.0065 & Y-Axis Multiplier 2.45 tanpa membuat frame drop/patah-patah.", prefs.getBoolean("vf_1", false)),
-            Triple("Headtick 99% [ZERO STUTTER]", "Meningkatkan akurasi recoil dan mengunci pengereman vertikal di area kepala (100% Bebas Lag).", prefs.getBoolean("vf_2", false)),
-            Triple("AimDrag [SMOOTH 180Hz PACK]", "Paket lengkap 165ms Clean Hold + 180Hz Input Sync agar tombol tembak tidak pernah macet.", prefs.getBoolean("vf_3", false)),
-            Triple("Controller Recoil [NO SHAKE]", "Menstabilkan getaran input sentuhan beruntun agar peluru lurus di satu titik kepala.", prefs.getBoolean("vf_4", false)),
-            Triple("Aim Tracking 95%", "Kalibrasi respons sentuhan 1:1 untuk mengikuti musuh lari dengan mulus.", prefs.getBoolean("vf_5", false)),
-            Triple("Stabilizer Head [SG2 / UMP / M1887]", "Khusus SG2 & SMG: memutus magnet dada dan mengunci red-dot di kepala tanpa frame drop.", prefs.getBoolean("vf_6", false)),
-            Triple("Safe CPU Priority [-10 Nice Boost]", "Menaikkan prioritas Free Fire secara aman tanpa membuat SurfaceFlinger atau layar macet.", prefs.getBoolean("vf_7", false))
+            Triple("AIMBOT LANGSUNG HS [XIT INJECT]", "Menyuntikkan XIT AimBot Head-Priority (HeadLock 1.0 + BodyOverride 0.0) agar tembakan langsung mengunci kepala.", prefs.getBoolean("vf_0", false)),
+            Triple("DRAG HS (CHEAT) [INSTANT HEAD-SNAP]", "Injeksi Y-Axis Snap 3.25x + MinFling 420 agar sekali tarik tombol tembak langsung merah di kepala.", prefs.getBoolean("vf_1", false)),
+            Triple("AIMLOCK PALA 99% [MAGNET BRAKE]", "Mengunci pengereman vertikal (Scroll Friction 0.005) tepat di hitbox kepala tanpa lewat ke atas.", prefs.getBoolean("vf_2", false)),
+            Triple("Headtick VIP [ZERO RECOIL SPREAD]", "Menghapus getaran recoil dan menjaga peluru tetap mengumpul di titik kepala.", prefs.getBoolean("vf_3", false)),
+            Triple("AimDrag [CHEST-BREAKER PACK]", "Memutus tarikan magnet dada Free Fire sehingga peluru pertama tidak nyangkut di badan.", prefs.getBoolean("vf_4", false)),
+            Triple("Aim Tracking 95% [SMOOTH LOCK]", "Kalibrasi respons sentuhan 1:1 untuk mengikuti kepala musuh yang sedang berlari.", prefs.getBoolean("vf_5", false)),
+            Triple("Stabilizer Head [SG2 / M1887 / UMP]", "Khusus SG2 & SMG jarak dekat: sentakan ringan langsung lompat dari dada ke kepala.", prefs.getBoolean("vf_6", false)),
+            Triple("Pro 200Hz Touch Polling [NO LAG]", "Sinkronisasi pembacaan layar 200 events/detik yang 100% stabil dan bebas patah-patah.", prefs.getBoolean("vf_7", false))
         )
     }
 
@@ -1154,7 +1083,7 @@ fun VortexHighTabScreen(context: Context, onRun: (() -> String) -> Unit) {
                         onCheckedChange = { checked ->
                             vortexFeatures[idx] = item.copy(third = checked)
                             prefs.edit().putBoolean("vf_$idx", checked).apply()
-                            onRun { VortexShellEngine.setHeadLockCheatEngine(context, checked, item.first.take(18)) }
+                            onRun { VortexShellEngine.injectXitAimbotInstantHs(context, checked, item.first.take(18)) }
                         },
                         colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CrimsonRed)
                     )
